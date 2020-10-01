@@ -18,6 +18,7 @@ import os
 import heterodyning.agilent_bin_beta as b_reader
 
 
+formatter1 = EngFormatter(places=2, sep=u"\N{THIN SPACE}")  # U+2009
 
 class Data():
     def __init__(self,f_name,
@@ -37,8 +38,13 @@ class Data():
         self.dt=self.dict['Channel_1']['x_increment']
         self.need_to_update_spec=True
         
-    def set_params(self,win_time,overlap_time,IsAveraging,average_time_window,   
-                 average_freq_window):
+        self.fig_spec=None
+        self.ax_spec=None
+        self.mode_indexes=None
+        
+        
+    def set_params(self,win_time,overlap_time,
+                   IsAveraging,average_time_window,average_freq_window):
         self.IsAveraging=IsAveraging
         self.win_time=win_time
         self.overlap_time=overlap_time
@@ -79,7 +85,6 @@ class Data():
         freq, time, spec_1=self.get_het_spectrogram(self.win_time,self.overlap_time)
         m1=np.mean(spec_1)
         s1=np.std(spec_1)
-        dT=time[1]-time[0]
         freq, time, spec_2=self.get_power_spectrogram(self.win_time,self.overlap_time)
         m3=np.mean(spec_2)
         s3=np.std(spec_2)
@@ -106,7 +111,7 @@ class Data():
         self.plot_spectrogram(self.freq,self.time,self.processed_spec)
 
     def plot_spectrogram(self,freq,time,spec):
-        formatter1 = EngFormatter(places=2, sep=u"\N{THIN SPACE}")  # U+2009
+
         fig, ax=plt.subplots()
         ax.pcolorfast(freq, time, spec, cmap='jet')
         ax.xaxis.set_major_formatter(formatter1)
@@ -114,9 +119,35 @@ class Data():
         plt.xlabel('Frequency, Hz')
         plt.ylabel('Time, s')
         plt.tight_layout()
+        self.fig_spec=fig
+        self.ax_spec=ax
         
+    def find_modes(self):
+        minimal_expected_mode_distance=60e6
+        signal_shrinked=np.nanmax(self.processed_spec,axis=0)
+        mode_indexes,_=scipy.signal.find_peaks(signal_shrinked, height=0.3*np.nanmax(signal_shrinked),distance=minimal_expected_mode_distance/(1/2/self.dt/len(self.freq)))
+        if self.fig_spec is not None:
+            for p in mode_indexes:
+                plt.axvline(self.freq[p],color='white')
+        self.mode_indexes=mode_indexes
+        return mode_indexes 
+    
+    def plot_mode_dynamics(self,mode_index):
+        signal=self.processed_spec[:,mode_index]
+        plt.figure()
+        plt.plot(self.time,signal)
+        plt.gca().xaxis.set_major_formatter(formatter1)
+        plt.xlabel('Time,s')      
+        plt.ylabel('Intensity,arb.u.')
+        plt.tight_layout()
 
+    def get_mode_lifetime(self,mode_index):
+        signal=self.processed_spec[:,mode_index]
+        average_factor_for_times=int(self.average_time_window/(self.win_time-self.overlap_time))
+        peaks,_=scipy.signal.find_peaks(signal, height=5*np.nanstd(signal),width=average_factor_for_times,prominence=3*np.nanstd(signal))
+        widths,width_heights,left_ips, right_ips=scipy.signal.peak_widths(signal,peaks,rel_height=0.9)
         
+        return self.time[int(right_ips[0])]-self.time[int(left_ips[0])]
 
         
 if __name__=='__main__':
