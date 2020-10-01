@@ -69,7 +69,6 @@ if __name__=='__main__':
     print(fname_list)
     """
     #
-    download(r'D:\study\science\RemoteMeasures\data\2GSs',r'\\WINDOWS-E76DLEM\Shared',fname_list)
-    single(dev,fname)
+    scope.download(desination,scope.wdir,fname_list)
     """
     
