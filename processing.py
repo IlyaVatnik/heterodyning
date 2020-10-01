@@ -15,8 +15,8 @@ import bottleneck as bn
 from scipy import fft
 import os
 
+# import heterodyning.scope_bin_parser as b_reader
 import heterodyning.agilent_bin_beta as b_reader
-
 
 formatter1 = EngFormatter(places=2, sep=u"\N{THIN SPACE}")  # U+2009
 
@@ -26,7 +26,7 @@ class Data():
                  overlap_time=2.5e-6,
                  average_time_window=50e-6,    
                  average_freq_window=10e6):
-        self.dict=b_reader.agilent_bin_extractor(open(f_name,'rb'))
+        self.dict=b_reader.read(f_name)
         self.win_time=win_time
         self.overlap_time=overlap_time
         self.average_time_window=average_time_window

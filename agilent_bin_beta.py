@@ -28,8 +28,8 @@ buffer_header_dtype = np.dtype([('header_size', 'i4'),
                                 ('bytes_per_point', 'i2'),
                                 ('buffer_size', 'i4')])
 
-def agilent_bin_extractor(f): #single segment, single buffer
-    
+def read(file_name): #single segment, single buffer
+    f=open(file_name,mode='rb')
     f_dict={}
     f_header = np.fromfile(f, dtype=file_header_dtype, count=1)
     f_dict['f_header']={}
@@ -67,6 +67,7 @@ def agilent_bin_extractor(f): #single segment, single buffer
         
         next_pos=f.tell()+bf_size
         wf_dict['data']=np.memmap(f, dtype=np.dtype(f_str), shape=(num_points,), mode='r', offset=f.tell())
+        # wf_dict['data']=np.fromfile(f, dtype=np.dtype(f_str), count=num_points, offset=f.tell())
         f.seek(next_pos)
     return f_dict
         
