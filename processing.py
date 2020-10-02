@@ -13,7 +13,6 @@ import scipy.signal
 import scipy.fft as fft
 import bottleneck as bn
 
-# import heterodyning.scope_bin_parser as b_reader
 import heterodyning.agilent_bin_beta as b_reader
 
 formatter1 = EngFormatter(places=2)
