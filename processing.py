@@ -127,9 +127,9 @@ class Spectrogram():
     def plot_processed_spectrogram(self):
         if self.need_to_update_spec:
             self.process_spectrogram()
-        self.plot_spectrogram(self.freq,self.time,self.processed_spec)
+        self._plot_spectrogram(self.freq,self.time,self.processed_spec)
 
-    def plot_spectrogram(self,freq,time,spec):
+    def _plot_spectrogram(self,freq,time,spec):
         fig, ax=plt.subplots()
         im=ax.pcolorfast(freq, time, spec, cmap='jet')
         ax.xaxis.set_major_formatter(formatter1)
@@ -161,11 +161,12 @@ class Spectrogram():
         plt.gca().yaxis.set_major_formatter(formatter1)
         plt.xlabel('Time, s')      
         plt.ylabel('Intensity, arb.u.')
-        plt.title('Mode at {:.3f} MHz detuning'.format(self.freq[mode_index]/1e6))
+        plt.title('Mode at {:.1f} MHz detuning'.format(self.freq[mode_index]/1e6))
         plt.tight_layout()
         return fig, plt.gca()
         
-    def plot_mode_lowfreq_spectrum(self,mode_index):
+    def plot_mode_lowfreq_spectrum(self,mode_number):
+        mode_index=self.modes[mode_number].ind
         signal=self.processed_spec[:,mode_index]
         fig=plt.figure()  
         N=len(self.time)
@@ -180,7 +181,7 @@ class Spectrogram():
         plt.gca().set_ylim((0,5e-6))
         plt.gca().xaxis.set_major_formatter(formatter1)
         plt.gca().yaxis.set_major_formatter(formatter1)
-        plt.title('RF spectrum for mode at {:.3f} MHz detuning'.format(self.freq[mode_index]/1e6))
+        plt.title('RF spectrum for mode at {:.1f} MHz detuning'.format(self.freq[mode_index]/1e6))
         plt.tight_layout()
         return fig, plt.gca()
 
