@@ -192,8 +192,6 @@ class Spectrogram():
         peak=np.nanargmax(signal)
         # peaks,_=scipy.signal.find_peaks(signal, height=3*bn.nanstd(signal),width=average_factor_for_times,prominence=3*np.nanstd(signal))
         widths,width_heights,left_ips, right_ips=scipy.signal.peak_widths(signal,[peak],rel_height=0.9)
-        print(self.time[int(left_ips[0])])
-        print(self.time[int(right_ips[0])])
         self.modes[mode_number].birth_time=self.time[int(left_ips[0])]
         self.modes[mode_number].death_time=self.time[int(right_ips[0])]
         self.modes[mode_number].life_time=self.modes[mode_number].death_time-self.modes[mode_number].birth_time
