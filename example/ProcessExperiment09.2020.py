@@ -9,8 +9,8 @@ import bottleneck as bn
 from heterodyning.processing import Spectrogram
 
 
-folder='G:\!Projects\!Rayleigh lasers - localisation, heterodyne, coherent detection\heterodyning\example\\'
-file_name='pulse 10mks edge 3 ns 4 V.bin'
+folder='G:\!Projects\\'
+file_name='2gss-29.9dBm-0.bin'
 formatter1 = EngFormatter(places=2)  # U+2009
 
 

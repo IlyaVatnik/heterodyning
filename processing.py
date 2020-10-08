@@ -34,7 +34,8 @@ class Spectrogram():
                  overlap_time=2.5e-6,
                  IsAveraging=True,
                  average_time_window=50e-6,    
-                 average_freq_window=10e6):
+                 average_freq_window=10e6,
+                 channels=[1,3]):
            
         self.win_time=win_time
         self.overlap_time=overlap_time
@@ -55,7 +56,7 @@ class Spectrogram():
         self.modes=None
         
                
-        self.process_spectrogram(f_name)
+        self.process_spectrogram(f_name,channels)
         
         
         
@@ -70,8 +71,8 @@ class Spectrogram():
         
         self.needToUpdateSpec=True
     
-    def _get_heterodyning_spectrogram(self,data_dict,win_time,overlap_time):
-        Chan='Channel_1'
+    def _get_heterodyning_spectrogram(self,data_dict,win_time,overlap_time,ch_number):
+        Chan='Channel_'+str(ch_number)
         dt=data_dict[Chan]['x_increment']
         freq, time, spec=scipy.signal.spectrogram(data_dict[Chan]['data']-np.mean(data_dict[Chan]['data']),
                                                   1/dt,
@@ -84,8 +85,8 @@ class Spectrogram():
         spec=np.rot90(spec)
         return freq,time,spec
     
-    def _get_power_spectrogram(self,data_dict,win_time,overlap_time):
-        Chan='Channel_3'
+    def _get_power_spectrogram(self,data_dict,win_time,overlap_time,ch_number):
+        Chan='Channel_'+str(ch_number)
         dt=data_dict[Chan]['x_increment']
         freq, time, spec=scipy.signal.spectrogram(data_dict[Chan]['data']-np.mean(data_dict[Chan]['data']),
                                                   1/dt,
@@ -98,12 +99,12 @@ class Spectrogram():
         spec=np.rot90(spec)
         return freq,time,spec
     
-    def process_spectrogram(self,f_name):
+    def process_spectrogram(self,f_name,channels):
         data_dict=b_reader.read(f_name)
-        freq, time, spec_1=self._get_heterodyning_spectrogram(data_dict,self.win_time,self.overlap_time)
+        freq, time, spec_1=self._get_heterodyning_spectrogram(data_dict,self.win_time,self.overlap_time,channels[0])
         m1=np.mean(spec_1)
         s1=np.std(spec_1)
-        freq, time, spec_2=self._get_power_spectrogram(data_dict,self.win_time,self.overlap_time)
+        freq, time, spec_2=self._get_power_spectrogram(data_dict,self.win_time,self.overlap_time,channels[1])
         m3=np.mean(spec_2)
         s3=np.std(spec_2)
         mask=spec_2>m3+2*s3
