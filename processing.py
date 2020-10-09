@@ -54,9 +54,9 @@ class Spectrogram():
         self.ax_spec=None
         
         self.modes=None
-        
+        self.channels=channels
                
-        self.process_spectrogram(f_name,channels)
+        self.process_spectrogram(f_name)
         
         
         
@@ -71,8 +71,8 @@ class Spectrogram():
         
         self.needToUpdateSpec=True
     
-    def _get_heterodyning_spectrogram(self,data_dict,win_time,overlap_time,ch_number):
-        Chan='Channel_'+str(ch_number)
+    def _get_heterodyning_spectrogram(self,data_dict,win_time,overlap_time):
+        Chan='Channel_'+str(self.channels[0])
         dt=data_dict[Chan]['x_increment']
         freq, time, spec=scipy.signal.spectrogram(data_dict[Chan]['data']-np.mean(data_dict[Chan]['data']),
                                                   1/dt,
@@ -85,8 +85,8 @@ class Spectrogram():
         spec=np.rot90(spec)
         return freq,time,spec
     
-    def _get_power_spectrogram(self,data_dict,win_time,overlap_time,ch_number):
-        Chan='Channel_'+str(ch_number)
+    def _get_power_spectrogram(self,data_dict,win_time,overlap_time):
+        Chan='Channel_'+str(self.channels[1])
         dt=data_dict[Chan]['x_increment']
         freq, time, spec=scipy.signal.spectrogram(data_dict[Chan]['data']-np.mean(data_dict[Chan]['data']),
                                                   1/dt,
@@ -99,12 +99,12 @@ class Spectrogram():
         spec=np.rot90(spec)
         return freq,time,spec
     
-    def process_spectrogram(self,f_name,channels):
+    def process_spectrogram(self,f_name):
         data_dict=b_reader.read(f_name)
-        freq, time, spec_1=self._get_heterodyning_spectrogram(data_dict,self.win_time,self.overlap_time,channels[0])
+        freq, time, spec_1=self._get_heterodyning_spectrogram(data_dict,self.win_time,self.overlap_time)
         m1=np.mean(spec_1)
         s1=np.std(spec_1)
-        freq, time, spec_2=self._get_power_spectrogram(data_dict,self.win_time,self.overlap_time,channels[1])
+        freq, time, spec_2=self._get_power_spectrogram(data_dict,self.win_time,self.overlap_time)
         m3=np.mean(spec_2)
         s3=np.std(spec_2)
         mask=spec_2>m3+2*s3
@@ -136,10 +136,11 @@ class Spectrogram():
         ax.yaxis.set_major_formatter(formatter1)
         plt.xlabel('Frequency, Hz')
         plt.ylabel('Time, s')
-        plt.tight_layout()
         plt.colorbar(im)
+        plt.title(str(self.channels))
         self.fig_spec=fig
         self.ax_spec=ax
+        plt.tight_layout()
         
     def find_modes(self,indicate_modes_on_spectrogram=False):
         self.modes=[]
@@ -148,20 +149,25 @@ class Spectrogram():
         for p in mode_indexes:
             self.modes.append(Mode(p,self.freq[p]))
             if self.fig_spec is not None and indicate_modes_on_spectrogram:
-                plt.axvline(self.freq[p],color='white')
+                self.fig_spec.axes[0].axvline(self.freq[p],color='white')
             
         return self.modes
-    
-    def plot_mode_dynamics(self,mode_number):
+   
+    def get_mode_dynamics(self,mode_number):
         mode_index=self.modes[mode_number].ind
         signal=self.processed_spec[:,mode_index]
-        fig=plt.figure()
-        plt.plot(self.time,signal)
+        return self.time,signal
+    
+    def plot_mode_dynamics(self,mode_number,NewFigure=True):
+        time,signal=self.get_mode_dynamics(mode_number)
+        if NewFigure:
+            fig=plt.figure()
+        plt.plot(time,signal)
         plt.gca().xaxis.set_major_formatter(formatter1)
         plt.gca().yaxis.set_major_formatter(formatter1)
         plt.xlabel('Time, s')      
         plt.ylabel('Intensity, arb.u.')
-        plt.title('Mode at {:.1f} MHz detuning'.format(self.freq[mode_index]/1e6))
+        plt.title('Mode at {:.1f} MHz detuning'.format(self.modes[mode_number].freq/1e6))
         plt.tight_layout()
         return fig, plt.gca()
         
@@ -181,7 +187,7 @@ class Spectrogram():
         plt.gca().set_ylim((0,5e-6))
         plt.gca().xaxis.set_major_formatter(formatter1)
         plt.gca().yaxis.set_major_formatter(formatter1)
-        plt.title('RF spectrum for mode at {:.1f} MHz detuning'.format(self.freq[mode_index]/1e6))
+        plt.title('RF spectrum for mode at {:.1f} MHz detuning'.format(self.modes[mode_number].freq/1e6))
         plt.tight_layout()
         return fig, plt.gca()
 
