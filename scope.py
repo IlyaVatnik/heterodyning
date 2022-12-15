@@ -34,7 +34,7 @@ class Oscilloscope():
     
     def wait(self):
         while self.dev.query(":PDER?")[1]!='1':
-                    time.sleep(0.01)
+                    time.sleep(0.05)
     
     
     
@@ -44,6 +44,12 @@ class Oscilloscope():
         command=':DISK:SAVE:WAV ALL,"'+filename+'",BIN,ON'
         self.dev.write(command)
         self.wait()
+        
+    def save_acquired(self,filename):
+        command=':DISK:SAVE:WAV ALL,"'+filename+'",BIN,ON'
+        self.dev.write(command)
+        self.wait()
+        
     
     def save_setup(self, set_filename):
         setup_bytes=self.dev.query_binary_values("*LRN?", datatype='s')[0]
@@ -70,5 +76,7 @@ if __name__=='__main__':
     """
     #
     scope.download(desination,scope.wdir,fname_list)
+
     """
+    del scope
     
