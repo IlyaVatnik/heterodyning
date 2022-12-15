@@ -35,16 +35,17 @@ class Spectrogram():
     def __init__(self,f_name,
                  win_time=3e-6,
                  overlap_time=2.5e-6,
-                 IsAveraging=True,
+                 averaging=True,
                  average_time_window=50e-6,    
                  average_freq_window=10e6,
-                 channels=[1,3]):
+                 channels=[1,3],
+                 extract_power_spectrogram=True):
            
         self.f_name=f_name
         
         self.win_time=win_time
         self.overlap_time=overlap_time
-        self.IsAveraging=IsAveraging
+        self.averaging=averaging
         self.average_time_window=average_time_window
         self.average_freq_window=average_freq_window
         
@@ -61,14 +62,14 @@ class Spectrogram():
         self.modes=None
         self.channels=channels
                
-        self._process_spectrogram()
+        self._process_spectrogram(extract_power_spectrogram)
         
         
         
         
     def set_params(self,win_time,overlap_time,
-                   IsAveraging,average_time_window,average_freq_window):
-        self.IsAveraging=IsAveraging
+                   averaging,average_time_window,average_freq_window):
+        self.averaging=averaging
         self.win_time=win_time
         self.overlap_time=overlap_time
         self.average_time_window=average_time_window
@@ -90,6 +91,8 @@ class Spectrogram():
         spec=np.rot90(spec)
         return freq,time,spec
     
+        
+        
     def _get_power_spectrogram(self,data_dict,win_time,overlap_time):
         Chan='Channel_'+str(self.channels[1])
         dt=data_dict[Chan]['x_increment']
@@ -105,22 +108,23 @@ class Spectrogram():
         return freq,time,spec
     
     
-    def _process_spectrogram(self):
+    def _process_spectrogram(self,extract_power_spectrogram):
         data_dict=b_reader.read(self.f_name)
         freq, time, spec_1=self._get_heterodyning_spectrogram(data_dict,self.win_time,self.overlap_time)
-        m1=np.mean(spec_1)
-        s1=np.std(spec_1)
-        freq, time, spec_2=self._get_power_spectrogram(data_dict,self.win_time,self.overlap_time)
-        m3=np.mean(spec_2)
-        s3=np.std(spec_2)
-        mask=spec_2>m3+2*s3
-        spec_1[mask]=m1-s1*np.random.ranf(mask[mask==True].size)
+        if extract_power_spectrogram==True:
+            m1=np.mean(spec_1)
+            s1=np.std(spec_1)
+            freq, time, spec_2=self._get_power_spectrogram(data_dict,self.win_time,self.overlap_time)
+            m3=np.mean(spec_2)
+            s3=np.std(spec_2)
+            mask=spec_2>m3+2*s3
+            spec_1[mask]=m1-s1*np.random.ranf(mask[mask==True].size)
 
     
         average_factor_for_freq=int(self.average_freq_window/(freq[1]-freq[0]))
         average_factor_for_times=int(self.average_time_window/(self.win_time-self.overlap_time))
         
-        if self.IsAveraging:
+        if self.averaging:
             spec_1=bn.move_mean(spec_1,average_factor_for_times,1,axis=0)
             spec_1=bn.move_mean(spec_1,average_factor_for_freq,1,axis=1)
         
@@ -130,15 +134,15 @@ class Spectrogram():
         self.need_to_update_spec=False
         return freq, time, self.spec
     
-    def plot_spectrogram(self,font_size=11,title=True,vmin=None,vmax=None,cmap='jet'):
+    def plot_spectrogram(self,font_size=11,title=True,vmin=None,vmax=None,cmap='jet',extract_power_spectrogram=True):
         if self.need_to_update_spec:
-            self._process_spectrogram()
+            self._process_spectrogram(extract_power_spectrogram)
         matplotlib.rcParams.update({'font.size': font_size})
         fig, ax=plt.subplots()
         im=ax.pcolorfast(self.freq, self.time, self.spec, cmap=cmap,vmin=vmin,vmax=vmax)
         ax.xaxis.set_major_formatter(formatter1)
         ax.yaxis.set_major_formatter(formatter1)
-        plt.xlabel('Frequency, Hz')
+        plt.xlabel('Frequency detuning, Hz')
         plt.ylabel('Time, s')
         cbar=plt.colorbar(im)
         cbar.set_label('Intensity, arb.u.')
@@ -247,6 +251,47 @@ class Spectrogram():
             plt.gca().xaxis.set_major_formatter(formatter1)    
         return life_times
             
+    
+# =============================================================================
+#     
+# =============================================================================
+
+def get_total_spectrum(f_name,channel=1):
+    from scipy.fft import fft
+    data_dict=b_reader.read(f_name)
+    Chan='Channel_'+str(channel)
+    data=data_dict[Chan]['data']-np.mean(data_dict[Chan]['data'])
+    spectrum=fft(data)
+    N=len(data)
+    dT=data_dict[Chan]['x_increment']
+    freqs = np.linspace(0.0, 1.0/(2.0*dT), N//2)
+    spectrum=2.0/N * np.abs(spectrum[0:N//2])
+    return freqs, spectrum
+
+def get_power_dynamics(f_name,channel=3):
+    data_dict=b_reader.read(f_name)
+    Chan='Channel_'+str(channel)
+    data=data_dict[Chan]['data']
+    dT=data_dict[Chan]['x_increment']
+    times = np.arange(0,len(data))*dT
+    return times, data
+
+def get_power_spectrogram(f_name,win_time,overlap_time,channel=3):
+    data_dict=b_reader.read(f_name)
+    Chan='Channel_'+str(channel)
+    dt=data_dict[Chan]['x_increment']
+    freq, time, spec=scipy.signal.spectrogram(data_dict[Chan]['data']-np.mean(data_dict[Chan]['data']),
+                                              1/dt,
+                                              window='triang',
+                                              nperseg=int(win_time/dt),
+                                              noverlap=int(overlap_time/dt),
+                                              detrend=False,
+                                              scaling='spectrum',
+                                              mode='magnitude')
+    spec=np.rot90(spec)
+    return freq,time,spec
+    
+
 
         
 if __name__=='__main__':
