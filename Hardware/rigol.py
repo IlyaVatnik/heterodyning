@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jul 24 14:47:14 2020
+Created on Wed Mar 15 18:08:57 2023
 
-@author: stelt
-
-
-Run as main() to see example process
+@author: Артем
 """
+
+#import scope
 
 import pyvisa
 import numpy as np
 import time
 from sys import stdout 
-
-#'WINDOWS-E76DLEM'
 
 class Wave:
     def __init__(self, datA, xinC):
@@ -23,7 +20,7 @@ class Wave:
 
 class Scope:
     
-    def __init__(self, host = 'WINDOWS-E76DLEM', protocol = 'hislip0', backend = None, timeout = 5000):
+    def __init__(self, host = 'WINDOWS-E76DLEM', protocol = 'hislip0', backend = None, timeout = 100):
         if backend:
             self.resource = pyvisa.ResourceManager(backend).open_resource('TCPIP0::'+host+'::'+protocol+'::INSTR')
         else:
@@ -34,9 +31,9 @@ class Scope:
         self.clear()
         self.resource.write_raw(b':SYSTem:HEADer 0')
         
-        self.point_lims = list(map(int,self.query_string(':ACQuire:POINts:TESTLIMITS?')[11:].split(b':')))
-        self.srate_lims = list(map(float,self.query_string(':ACQuire:SRATe:TESTLIMITS?')[11:].split(b':')))
-           
+        #self.point_lims = list(map(int,self.query_string(':ACQuire:POINts:TESTLIMITS?')[11:].split(b':')))
+        #self.srate_lims = list(map(float,self.query_string(':ACQuire:SRATe:TESTLIMITS?')[11:].split(b':')))
+    """
     def err_code(self):
         self.resource.write_raw(b':SYSTem:ERRor?')
         resp = self.resource.read_raw()[:-1]
@@ -44,73 +41,35 @@ class Scope:
             return int(resp[10:])
         else:
             return int(resp)
-        
+    """    
     def clear(self):
         """
         use if all is fucked
         """
         self.resource.write_raw(b'*CLS')
-    
+    """
     def err_corr(self):
         if self.err_code():
             self.clear()
             return 1
         else:
             return 0
-        
+    """  
     def command(self, command):
-         self.err_corr()
+         #self.err_corr()
          return self.resource.write_raw(bytes(command, encoding = 'utf8'))
      
     def read(self):
         return self.resource.read_raw()
      
     def query_string(self, command):
-        self.err_corr()
+        #self.err_corr()
         if not command[-1] == '?':
             raise RuntimeError('query with no question mark')
         self.resource.write_raw(bytes(command, encoding = 'utf8'))
         return self.resource.read_raw()[:-1]
     
-    """
     
-    def query_wave(self):
-        self.err_corr()
-        self.resource.write_raw(':SYSTem:HEADer?')
-        is_header = self.resource.read_raw()[-2]
-        self.resource.write_raw(':SYSTem:HEADer 0')
-        
-        self.resource.write_raw(':WAVeform:STReaming?')
-        is_streaming = self.resource.read_raw()[-2]
-        self.resource.write_raw(':WAVeform:STReaming 1')
-        
-        self.resource.write_raw(':WAVeform:BYTeorder?')
-        byteorder = self.resource.read_raw()[-2]
-        self.resource.write_raw(':WAVeform:BYTeorder MSBF')
-        
-        self.resource.write_raw(":WAVeform:PREamble?")
-        preamble = self.resource.read_raw()
-        (wav_form, acq_type, wfmpts, avgcnt, x_increment, x_origin,
-         x_reference, y_increment, y_origin, y_reference, coupling,
-         x_display_range, x_display_origin, y_display_range,
-         y_display_origin, date, time, frame_model, acq_mode,
-         completion, x_units, y_units, max_bw_limit, min_bw_limit
-         ) = preamble.split(b",")
-         
-        if not ( int(wav_form) in (1,2) ):
-            raise RuntimeError('Currently not supported wave format')
-        
-        origins = np.array(list(map(float,(x_increment, x_origin, y_increment, y_origin))), dtype = 'f')
-        
-        self.resource.write_raw(':WAVeform:DATA?')
-        wave = np.frombuffer(self.resource.read_raw()[2:-1],dtype = np.dtype('>i{}'.format(int(wav_form))))*origins[2]+origins[3]
-
-        self.resource.write_raw(':SYSTem:HEADer '+str(is_header))
-        self.resource.write_raw(':WAVeform:STReaming '+str(is_streaming))                
-        self.resource.write_raw(':WAVeform:BYTeorder '+byteorder)
-        
-        return Wave(wave,origins[0])
-    """
         
     def query_wave_fast(self):
         """
@@ -142,29 +101,6 @@ class Scope:
         else:
             self.resource.write_raw(bytes(':WAVeform:SOURce CHAN{}'.format(ch_num), encoding = 'utf8'))
         return self.query_string(':WAVeform:SOURce?')+b'\n'
-    
-    def set_params(self, average_count = 0, # if 0 - no average
-                   trace_points = 0, # if 0 - minimum
-                   sampling_rate = 0, # if 0 - minimum
-                   trigger = 'AUTO',
-                   channels_displayed=(1,)):
-
-        channels_coupling={}
-        for ch in channels_displayed:
-            channels_coupling[ch]='DC50'
-            
-        self.macro_setup(channels_displayed, channels_coupling,
-                         mode = 'RTIMe', average_count=average_count, # if 0 - no average
-                         trace_points = trace_points, # if 0 - minimum
-                         sampling_rate = sampling_rate, # if 0 - minimum
-                         trigger = trigger,
-                         wave_byteorder = 'MSBF',
-                         wave_format = 'WORD', 
-                         wave_source = channels_displayed[0], # channel number
-                         wave_view = 'ALL', # ALL for full data, MAIN for display drawn data
-                         streaming = 'ON',
-                         header = 'OFF'
-                         )
     
     def macro_setup(self,
             channels_displayed = (1,),
@@ -256,7 +192,7 @@ class Scope:
         Acquire trace using current setup.
         Default timeout is infinite, every ~5 sec a message is written to stdout
         """
-        self.err_corr()
+        #self.err_corr()
         self.resource.write_raw(b':SINGle')
         i = 0
         t0 = time.time()
@@ -276,11 +212,6 @@ class Scope:
         else:
             raise RuntimeError('Acquisition timeout')
     
-    def acquire_and_return(self,ch_num):
-        self.acquire(sleep_step=2)
-        self.set_wfm_source(ch_num)
-        return self.query_wave_fast()
-        
       
     def SRQEnable(self):
         self.command('OPEE 1')
@@ -306,22 +237,12 @@ class Scope:
         else:
             raise RuntimeError(':ADER not asserted')
             
-        
-        
-        
-
-if __name__ == '__main__':
-    scope = Scope('WINDOWS-E76DLEM')
-    scope.macro_setup(
-            channels_displayed = (1,3),
-            channels_coupling = {1:'DC50', 3:'DC50'},
-            average_count = 0, # if 0 - no average
-            trace_points = 1e9, # if 0 - minimum
-            sampling_rate = 1e9, # if 0 - minimum
-            trigger = 'AUTO',
-            wave_source = 1) # channel number
-    scope.acquire()
-    wave = scope.query_wave_fast()
-
-
+#%%
     
+
+scp4 = Scope(host='10.2.60.117', protocol = 'inst0', timeout = 5000)
+
+scp4.acquire()
+
+#%%%
+

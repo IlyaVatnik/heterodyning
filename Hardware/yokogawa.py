@@ -36,78 +36,6 @@ class Yokogawa:
         self.clear()
         self.resource.write_raw(':INITiate:IMMediate')
         self.query_string('*OPC?')
-        
-    def set_measurement_mode(self,mode='SINGLe'):
-        '''
-        AUTO Auto sweep
-        REPEAT Repeat sweep
-        SINGLE Single sweep
-        STOP Sweep stop
-        '''
-        self.clear()
-        self.resource.write_raw(':INITiate:SMODe '+mode)
-        
-    def start_measurements(self):
-        self.clear()
-        self.resource.write_raw(':INITiate:IMMediate')
-        # self.resource.write_raw(':INITiate:SMODe REPeat')
-    
-        
-    
-        
-    def abort(self):
-        self.clear()
-        self.resource.write_raw(':ABORt')
-        
-    
-        
-    def set_average_count(self,n:int):
-        self.clear()
-        self.resource.write_raw(':SENSE:AVERAGE:COUNT '+str(n))
-        
-    def get_average_count(self):
-        self.clear()
-        return int(self.query_string(':SENSE:AVERAGE:COUNT?'))
-    
-    def set_sensitivity(self,sens:str):
-        self.clear()
-        self.resource.write_raw(':SENSE:SENSe '+sens)
-        
-    def get_sensitivity(self):
-        self.clear()
-        return self.query_string(':SENSE:SENSe?')
-    
-    def set_trace_mode(self,trace='A',mode='WRITE'):
-        '''
-        WRITe = WRITE
-        FIX = FIX
-        MAX = MAX HOLD
-        MIN = MIN HOLD
-        RAVG = ROLL AVG
-        CALC = CALC
-        '''
-        self.clear()
-        self.resource.write_raw(':TRACE:ATTRIBUTE:TR'+trace+' '+mode)
-        
-    def get_trace_mode(self,trace='A'):
-        '''
-        WRITe = WRITE
-        FIX = FIX
-        MAX = MAX HOLD
-        MIN = MIN HOLD
-        RAVG = ROLL AVG
-        CALC = CALC
-        '''
-        self.clear()
-        return self.query_string(':TRACE:ATTRIBUTE:TR'+trace+'?')
-    
-    
-    def clear_trace(self,trace='A'):
-        self.clear()
-        self.resource.write_raw(':TRACE:DELETE TR'+trace)
-
-    
-    
     
     def query_trace(self):
         self.resource.write_raw(':FORMat:DATA ASCii')
@@ -119,7 +47,10 @@ class Yokogawa:
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     osa = Yokogawa()
-    
+    osa.acquire()
+    x, y = osa.query_trace()
+    plt.plot(x, y)
+    del osa
     
 
 
@@ -143,4 +74,3 @@ if __name__ == '__main__':
 #:SENSe:BANDwidth|:BWIDth[:RESolution]
 #:SPACing LOGarithmic|LINear|0|1
 #:UNIT DBM|W|DBM/NM|W/NM|0|1|2|3
-

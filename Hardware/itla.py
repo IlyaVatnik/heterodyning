@@ -113,18 +113,29 @@ class ITLA:
     def on(self,sleep_inc=1):
         rsp = self.talk(1, 0x32, 0, 8)
         #self.enable = rsp[-1] | 8
+        print('PurePhotonics is on')
         return rsp
     
     def off(self):
         rsp = self.talk(1, 0x32, 0, 0)
         #self.enable = rsp[-1] | 8
+        print('PurePhotonics is off')
         return rsp
     
     def set_power(self, pwr):
         # pwr in dBm*100
         rsp = self.talk(1, 0x31, *struct.pack('!h',pwr))
         #self.pwr_setP = pwr
+        print('power is set')
         return rsp
+    
+    def set_wavelength(self,wavelength):
+        '''
+        wavelength in meters
+        '''
+        freq = m_Hz(wavelength)
+        self.set_frequency(freq)
+        print('wavelength set')
     
     def set_frequency(self, frequency):
         freq = int(frequency) # Hz
@@ -135,6 +146,7 @@ class ITLA:
         self.fcf1 = THz
         dghzResp = self.talk(1, 0x36, *struct.pack('!H',dGHz))
         self.fcf2 = dGHz
+        print('frequency set')
         return thzResp, dghzResp
                   
     def set_FTFrequency(self, frequency):
