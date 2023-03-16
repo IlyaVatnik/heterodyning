@@ -10,6 +10,8 @@ Created on Thu Mar 16 14:47:27 2023
 Created on Thu Oct  1 11:37:33 2020
 
 @author: ilyav
+"""
+__version__='2'
 __date__='2023.03.16'
 
 from matplotlib import pyplot as plt
@@ -40,16 +42,13 @@ class Mode():
 
 
 class Spectrogram():
-    def __init__(self,f_name,
-                 win_time=3e-6,
-                 overlap_time=2.5e-6,
-                 averaging=True,
-                 average_time_window=50e-6,    
+    def __init__(self,freqs=None,times=None,spec=None,params=None):
+
         
+        self.freqs=freqs
         self.times=times
         self.spec=spec
         
-        self.dt=None
         self.params=params
         
             
@@ -71,33 +70,6 @@ class Spectrogram():
         
         self.needToUpdateSpec=True
     
-    def _get_heterodyning_spectrogram(self,data_dict,win_time,overlap_time):
-        Chan='Channel_'+str(self.channels[0])
-        dt=data_dict[Chan]['x_increment']
-        freq, time, spec=scipy.signal.spectrogram(data_dict[Chan]['data']-np.mean(data_dict[Chan]['data']),
-                                                  1/dt,
-                                                  window='triang',
-                                                  nperseg=int(win_time/dt),
-                                                  noverlap=int(overlap_time/dt),
-        spec=np.rot90(spec)
-        return freq,time,spec
-        
-        
-        Chan='Channel_'+str(self.channels[1])
-        dt=data_dict[Chan]['x_increment']
-                                                  window='triang',
-                                                  nperseg=int(win_time/dt),
-                                                  noverlap=int(overlap_time/dt),
-                                                  detrend=False,
-                                                  scaling='spectrum',
-                                                  mode='magnitude')
-        spec=np.rot90(spec)
-        return freq,time,spec
-    
-    
-    def _process_spectrogram(self,extract_power_spectrogram):
-        data_dict=b_reader.read(self.f_name)
-        freq, time, spec_1=self._get_heterodyning_spectrogram(data_dict,self.win_time,self.overlap_time)
  
     def plot_spectrogram(self,font_size=11,title='',vmin=None,vmax=None,cmap='jet'):
         matplotlib.rcParams.update({'font.size': font_size})
