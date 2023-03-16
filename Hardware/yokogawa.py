@@ -50,9 +50,22 @@ class Yokogawa:
 
     def set_measurement_mode(self,mode='SINGLE'):
         res=self.resource.write_raw(':INITiate:SMode {}'.format(mode))
+        
+    def set_average_count(self,av_count:int):
+        res=self.resource.write_raw(':TRACe:ATTRibute:RAVG {}'.format(av_count))
+        
+    def clear_trace(self):
+        active=self.query_string(':TRACe:ACTive?')
+        res=self.resource.write_raw(':TRACE:DELETE {}'.format(active))
     
+    def abort(self):
+        self.resource.write_raw(':ABORt')
+        
+    def start_measurements(self):
+        self.resource.write_raw(':INITiate:IMMediate')
+        
     
-    
+    #%%
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     osa = Yokogawa()
@@ -60,6 +73,8 @@ if __name__ == '__main__':
     x, y = osa.query_trace()
     plt.plot(x, y)
     osa.set_trace_mode('A','MAX')
+    osa.clear_trace()
+    osa.abort()
     
     # del osa
     
