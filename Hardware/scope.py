@@ -3,7 +3,7 @@
 Created on Fri Jul 24 14:47:14 2020
 
 @author: stelt
-
+modified by Ilya
 
 Run as main() to see example process
 """
@@ -14,6 +14,9 @@ import time
 from sys import stdout 
 
 #'WINDOWS-E76DLEM'
+
+__version__='2'
+__date__='2023.03.16'
 
 class Wave:
     def __init__(self, datA, xinC):
@@ -147,6 +150,7 @@ class Scope:
                    trace_points = 0, # if 0 - minimum
                    sampling_rate = 0, # if 0 - minimum
                    trigger = 'AUTO',
+                   trigger_channel=1,
                    channels_displayed=(1,)):
 
         channels_coupling={}
@@ -158,6 +162,7 @@ class Scope:
                          trace_points = trace_points, # if 0 - minimum
                          sampling_rate = sampling_rate, # if 0 - minimum
                          trigger = trigger,
+                         trigger_channel=trigger_channel,
                          wave_byteorder = 'MSBF',
                          wave_format = 'WORD', 
                          wave_source = channels_displayed[0], # channel number
@@ -174,6 +179,7 @@ class Scope:
             trace_points = 0, # if 0 - minimum
             sampling_rate = 0, # if 0 - minimum
             trigger = 'AUTO',
+            trigger_channel=1,
             wave_byteorder = 'MSBF',
             wave_format = 'WORD', 
             wave_source = 1, # channel number
@@ -231,6 +237,10 @@ class Scope:
         
         self.resource.write_raw(bytes('TRIGger:SWEep '+trigger, encoding = 'utf8'))
         stdout.write(str(self.query_string('TRIGger:SWEep?')+b'\n'))
+
+        
+        self.resource.write_raw(bytes(':TRIGger:EDGE:SOURce CHANnel{}'.format(trigger_channel), encoding = 'utf8'))
+        # stdout.write(str(self.query_string('TRIGger:AND:SOURce? CHANnel')+b'\n'))
         
         self.resource.write_raw(bytes(':WAVeform:FORMat ' + wave_format, encoding = 'utf8'))
         stdout.write(str(self.query_string(':WAVeform:FORMat?')+b'\n'))
@@ -281,6 +291,10 @@ class Scope:
         self.set_wfm_source(ch_num)
         return self.query_wave_fast()
         
+    def get_data(self,ch_num):
+        self.set_wfm_source(ch_num)
+        return self.query_wave_fast()
+        
       
     def SRQEnable(self):
         self.command('OPEE 1')
@@ -319,9 +333,10 @@ if __name__ == '__main__':
             trace_points = 1e9, # if 0 - minimum
             sampling_rate = 1e9, # if 0 - minimum
             trigger = 'AUTO',
+            trigger_channel=4,
             wave_source = 1) # channel number
-    scope.acquire()
-    wave = scope.query_wave_fast()
+    # scope.acquire()
+    # wave = scope.query_wave_fast()
 
 
     

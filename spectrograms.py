@@ -22,12 +22,53 @@ import numpy as np
 import scipy.signal
 import scipy.fft as fft
 import bottleneck as bn
-
+import pickle
 import heterodyning.agilent_bin_beta as b_reader
 
 
+win_time=2e-6
+overlap_time=0
+IsAveraging=False
+average_time_window=10e-6    
+average_freq_window=5e6
 
-
+def create_spectrogram_from_data(amplitude_trace,dt,
+                                 win_time=win_time,
+                                 overlap_time=overlap_time,
+                                 IsAveraging=IsAveraging,
+                                 average_time_window=average_time_window,    
+                                 average_freq_window=average_freq_window,
+                                 cut_off=True):
+                                 
+    freqs, times, spec=scipy.signal.spectrogram(
+        amplitude_trace,
+        1/dt,
+        window='triang',
+        nperseg=int(win_time/dt),
+        noverlap=int(overlap_time/dt),          
+        #detrend=False,
+        detrend='constant',
+        scaling='spectrum',
+        mode='magnitude')
+    
+    if IsAveraging:
+        average_factor_for_freq=int(average_freq_window/(freqs[1]-freqs[0]))
+        average_factor_for_times=int(average_time_window/(win_time-overlap_time))
+        spec=bn.move_mean(spec,average_factor_for_times,1,axis=0)
+        spec=bn.move_mean(spec,average_factor_for_freq,1,axis=1)
+    
+    params=[win_time,
+            overlap_time,
+            IsAveraging,
+            average_time_window,    
+            average_freq_window]
+    
+    
+    s=Spectrogram(times,freqs, spec,params)
+    if cut_off:
+        s.cut_off_low_freqs(200e6)
+    return s
+    
 
 class Mode():
     def __init__(self,ind,freq):
@@ -42,7 +83,7 @@ class Mode():
 
 
 class Spectrogram():
-    def __init__(self,freqs=None,times=None,spec=None,params=None):
+    def __init__(self,times=None,freqs=None,spec=None,params=None):
 
         
         self.freqs=freqs
@@ -74,11 +115,11 @@ class Spectrogram():
     def plot_spectrogram(self,font_size=11,title='',vmin=None,vmax=None,cmap='jet'):
         matplotlib.rcParams.update({'font.size': font_size})
         fig, ax=plt.subplots()
-        im=ax.pcolorfast(self.freqs, self.times, self.spec, cmap=cmap,vmin=vmin,vmax=vmax)
+        im=ax.pcolorfast(self.times,self.freqs,self.spec,cmap=cmap,vmin=vmin,vmax=vmax)
         ax.xaxis.set_major_formatter(formatter1)
         ax.yaxis.set_major_formatter(formatter1)
-        plt.xlabel('Frequency detuning, Hz')
-        plt.ylabel('Time, s')
+        plt.ylabel('Frequency detuning, Hz')
+        plt.xlabel('Time, s')
         cbar=plt.colorbar(im)
         cbar.set_label('Intensity, arb.u.')
         self.fig_spec=fig
@@ -96,17 +137,25 @@ class Spectrogram():
         '''
         ind=np.argmin(abs(self.freqs-cut_off))
         self.freqs=self.freqs[ind:]
-        self.spec=self.spec[ind:]
+        self.spec=self.spec[ind:,:]
         
         
-    def find_modes(self,indicate_modes_on_spectrogram=False):
+    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=3):
         self.modes=[]
-        signal_shrinked=np.nanmax(self.spec,axis=0)
-        mode_indexes,_=scipy.signal.find_peaks(signal_shrinked, height=bn.nanstd(signal_shrinked),prominence=bn.nanstd(signal_shrinked))#distance=self.average_freq_window/(1/2/self.dt/len(self.freqs)))
-        for p in mode_indexes:
+        signal_shrinked=np.nanmax(self.spec,axis=1)
+        mode_indexes,_=scipy.signal.find_peaks(signal_shrinked, prominence=prominance_factor*bn.nanstd(signal_shrinked))#distance=self.average_freq_window/(1/2/self.dt/len(self.freqs)))
+        for mode_number,p in enumerate(mode_indexes):
             self.modes.append(Mode(p,self.freqs[p]))
             if self.fig_spec is not None and indicate_modes_on_spectrogram:
-                self.fig_spec.axes[0].axvline(self.freqs[p],color='white')
+                self.fig_spec.axes[0].axhline(self.freqs[p],color='yellow',linewidth=2)
+            signal=self.spec[p,:]
+            peak=np.nanargmax(signal)
+            # peaks,_=scipy.signal.find_peaks(signal, height=3*bn.nanstd(signal),width=average_factor_for_times,prominence=3*np.nanstd(signal))
+            widths,width_heights,left_ips, right_ips=scipy.signal.peak_widths(signal,[peak],rel_height=0.8)
+            self.modes[mode_number].birth_time=self.times[int(left_ips[0])]
+            self.modes[mode_number].death_time=self.times[int(right_ips[0])]
+            self.modes[mode_number].life_time=self.modes[mode_number].death_time-self.modes[mode_number].birth_time
+        
             
         return self.modes
     
@@ -133,7 +182,7 @@ class Spectrogram():
    
     def get_mode_dynamics(self,mode_number,normed=False):
         mode_index=self.modes[mode_number].ind
-        signal=self.spec[:,mode_index]
+        signal=self.spec[mode_index,:]
         if normed:
             signal=signal/max(signal)
         return self.times,signal
@@ -153,7 +202,7 @@ class Spectrogram():
         
     def plot_mode_lowfreq_spectrum(self,mode_number):
         mode_index=self.modes[mode_number].ind
-        signal=self.spec[:,mode_index]
+        signal=self.spec[mode_index,:]
         fig=plt.figure()  
         N=len(self.times)
         dT=self.times[1]-self.times[0]
@@ -173,9 +222,9 @@ class Spectrogram():
 
     def get_mode_lifetime(self,mode_number:int):
         mode_index=self.modes[mode_number].ind
-        signal=self.spec[:,mode_index]
-        average_factor_for_times=int(self.average_time_window/(self.win_time-self.overlap_time))
-        signal=bn.move_mean(signal,100)
+        signal=self.spec[mode_index,:]
+        # average_factor_for_times=int(self.average_time_window/(self.win_time-self.overlap_time))
+        # signal=bn.move_mean(signal,100)
         peak=np.nanargmax(signal)
         # peaks,_=scipy.signal.find_peaks(signal, height=3*bn.nanstd(signal),width=average_factor_for_times,prominence=3*np.nanstd(signal))
         widths,width_heights,left_ips, right_ips=scipy.signal.peak_widths(signal,[peak],rel_height=0.8)
@@ -184,7 +233,7 @@ class Spectrogram():
         self.modes[mode_number].life_time=self.modes[mode_number].death_time-self.modes[mode_number].birth_time
         
         # plt.hlines(0,xmin=self.modes[mode_number].birth_time,xmax=self.modes[mode_number].death_time,color='red')
-        return self.modes[mode_number].life_time,self.modes[mode_number].birth_time,self.modes[mode_number].death_time
+        return int(left_ips[0]),int(right_ips[0]),self.modes[mode_number].life_time,self.modes[mode_number].birth_time,self.modes[mode_number].death_time
     
     def get_lifetime_hist(self, plot_hist=False,indicate_lifetimes=False):
         life_times=[]
@@ -195,7 +244,7 @@ class Spectrogram():
             if self.fig_spec is None:
                 self.plot_spectrogram()
             for mode in self.modes:
-                self.ax_spec.vlines(mode.freq,ymin=mode.birth_time, ymax=mode.death_time,color='red')
+                self.ax_spec.hlines(mode.freq,xmin=mode.birth_time, xmax=mode.death_time,color='red')
         if plot_hist:
             plt.figure(33)
             plt.hist(life_times)
@@ -204,6 +253,25 @@ class Spectrogram():
             plt.gca().xaxis.set_major_formatter(formatter1)    
         return life_times
     
+    
+    def save_to_file(self,file,as_object=False):
+        with open(file, 'wb') as f:
+            if as_object:
+                pickle.dump(self,f)
+            else:
+                pickle.dump([self.times,self.freqs,self.spec,self.params],f)
+                
+                
+def load_from_file(file):
+    with open(file, 'rb') as f:
+        obj=pickle.load(f)
+    if not isinstance(obj,list):
+        return obj
+    else:
+        times,freqs, spec,params=obj
+        return Spectrogram(times,freqs, spec,params)
+        
+        
     
     
 
@@ -244,37 +312,6 @@ def get_power_spectrogram(f_name,win_time,overlap_time,channel=3):
     return freq,time,spec
     
 
-def create_spectrogram_from_data(amplitude_trace,dt,
-                                 win_time=3e-6,
-                                 overlap_time=2.5e-6,
-                                 IsAveraging=True,
-                                 average_time_window=50e-6,    
-                                 average_freq_window=10e6):
-                                 
-    freqs, times, spec=scipy.signal.spectrogram(
-        amplitude_trace,
-        1/dt,
-        window='triang',
-        nperseg=int(win_time/dt),
-        noverlap=int(overlap_time/dt),          
-        #detrend=False,
-        detrend='constant',
-        scaling='spectrum',
-        mode='magnitude')
-    
-    if IsAveraging:
-        average_factor_for_freq=int(average_freq_window/(freqs[1]-freqs[0]))
-        average_factor_for_times=int(average_time_window/(win_time-overlap_time))
-        spec=bn.move_mean(spec,average_factor_for_times,1,axis=0)
-        spec=bn.move_mean(spec,average_factor_for_freq,1,axis=1)
-    
-    params=[win_time,
-            overlap_time,
-            IsAveraging,
-            average_time_window,    
-            average_freq_window]
-    
-    return Spectrogram(freqs, times, spec,params)
     
 def create_spectrogram_from_file_two_channels_agilent(f_name,
                                                       win_time=3e-6,
@@ -331,9 +368,7 @@ def create_spectrogram_from_file_two_channels_agilent(f_name,
 
         spec_1=bn.move_mean(spec_1,average_factor_for_times,1,axis=0)
         spec_1=bn.move_mean(spec_1,average_factor_for_freq,1,axis=1)
-    
-    freq=freq
-    time=time
+
     spec=spec_1-(bn.nanmean(spec_1,axis=1)).reshape(len(time),1)
     params=[win_time,
             overlap_time,
@@ -341,7 +376,7 @@ def create_spectrogram_from_file_two_channels_agilent(f_name,
             average_time_window,    
             average_freq_window,
             channels]
-    return Spectrogram(freq, time, spec,params)
+    return Spectrogram(time,freq, spec,params)
 
 
         

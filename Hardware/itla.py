@@ -159,6 +159,7 @@ class ITLA:
 
 
 class PPCL550(ITLA):
+    
     def __init__(self, port, timeout = 2000, backend = None):
         super().__init__(port, timeout, backend)
         self.md = self.ask_value(0x90)
@@ -177,8 +178,14 @@ class PPCL550(ITLA):
             'no dither' : 1,
             'whisper' : 2
             }
-        return self.talk(1,0x90,0, modes[md])
-        
+        success=False
+        while not success:
+            try:
+                self.talk(1,0x90,0, modes[md])
+                success=True
+            except ITLA_Error:
+                pass
+        print('PurePhotonics mode is set')
         
            
 if __name__ == '__main__':

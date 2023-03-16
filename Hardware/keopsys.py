@@ -20,15 +20,21 @@ class Keopsys:
     
     def APCon(self):
         if self.mode=='power':
-            return self.command('ASS=2')
+            result=self.command('ASS=2')
         elif self.mode=='current':
-            return self.command('ASS=1')
+            result=self.command('ASS=1')
+        print('power is on')
+        return result
     
     def APCoff(self):
-        return self.command('ASS=0')
+        result= self.command('ASS=0')
+        print('Pump is off')
+        return result
 
     def set_power(self, pwr):
-        return self.command('SOP={}'.format(pwr)) #dBm * 10
+        result= self.command('SOP={}'.format(pwr)) #dBm * 10
+        print('Pump power is set to {}'.format(pwr))
+        return result
 
     def set_current(self, c):
         return self.command('IC2={}'.format(c)) #dBm * 10
