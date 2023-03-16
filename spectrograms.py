@@ -140,7 +140,7 @@ class Spectrogram():
         self.spec=self.spec[ind:,:]
         
         
-    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=3):
+    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=3,rel_height=0.8):
         self.modes=[]
         signal_shrinked=np.nanmax(self.spec,axis=1)
         mode_indexes,_=scipy.signal.find_peaks(signal_shrinked, prominence=prominance_factor*bn.nanstd(signal_shrinked))#distance=self.average_freq_window/(1/2/self.dt/len(self.freqs)))
@@ -151,7 +151,7 @@ class Spectrogram():
             signal=self.spec[p,:]
             peak=np.nanargmax(signal)
             # peaks,_=scipy.signal.find_peaks(signal, height=3*bn.nanstd(signal),width=average_factor_for_times,prominence=3*np.nanstd(signal))
-            widths,width_heights,left_ips, right_ips=scipy.signal.peak_widths(signal,[peak],rel_height=0.8)
+            widths,width_heights,left_ips, right_ips=scipy.signal.peak_widths(signal,[peak],rel_height=rel_height)
             self.modes[mode_number].birth_time=self.times[int(left_ips[0])]
             self.modes[mode_number].death_time=self.times[int(right_ips[0])]
             self.modes[mode_number].life_time=self.modes[mode_number].death_time-self.modes[mode_number].birth_time

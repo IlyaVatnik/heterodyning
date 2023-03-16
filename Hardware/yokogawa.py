@@ -10,6 +10,8 @@ import numpy as np
 import time
 from sys import stdout
 
+__version__='2'
+__date__='2023.03.16'
 
 class Yokogawa:
     
@@ -43,6 +45,13 @@ class Yokogawa:
         amp = np.array(self.query_string(':TRACe:Y? TRA').split(b','), dtype = 'f')
         return wl, amp
     
+    def set_trace_mode(self, ch='A',type_of_meas='WRITE'):
+        res=self.resource.write_raw(':TRACe:ATTRibute:TR{} {}'.format(ch,type_of_meas))
+
+    def set_measurement_mode(self,mode='SINGLE'):
+        res=self.resource.write_raw(':INITiate:SMode {}'.format(mode))
+    
+    
     
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
@@ -50,7 +59,9 @@ if __name__ == '__main__':
     osa.acquire()
     x, y = osa.query_trace()
     plt.plot(x, y)
-    del osa
+    osa.set_trace_mode('A','MAX')
+    
+    # del osa
     
 
 
