@@ -26,7 +26,7 @@ import pickle
 import heterodyning.agilent_bin_beta as b_reader
 
 
-win_time=2e-6
+win_time=1e-6
 overlap_time=0
 IsAveraging=False
 average_time_window=10e-6    
@@ -122,6 +122,7 @@ class Spectrogram():
         plt.xlabel('Time, s')
         cbar=plt.colorbar(im)
         cbar.set_label('Intensity, arb.u.')
+        cbar.ax.yaxis.set_major_formatter(formatter1)
         self.fig_spec=fig
         self.ax_spec=ax
         plt.title(title)
@@ -381,5 +382,7 @@ def create_spectrogram_from_file_two_channels_agilent(f_name,
 
         
 if __name__=='__main__':
-    print()
+    f=r"D:\Ilya\Second round random laser\SMF-28 32 km\2023.03.16-17 testing different polarizations\At 1550.35\spectrogram_examples\1\Large R 1.spec"
+    spec=load_from_file(f)
+    spec.plot_spectrogram()
     

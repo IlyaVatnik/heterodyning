@@ -1,7 +1,7 @@
 import numpy as np
 import heterodyning
 from heterodyning.spectrograms import create_spectrogram_from_data
-from heterodyning.Hardware import scope,itla,keopsys
+from heterodyning.Hardware import scope,itla,keopsys,yokogawa
 import matplotlib.pyplot as plt
 
 #%%
@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 scope=scope.Scope('WINDOWS-E76DLEM')
 #%%
 trigger_channel=1
-scope.set_params(channels_displayed=(1),
-                 trace_points=5e6,
+scope.set_params(channels_displayed=(1,),
+                 trace_points=10e6,
                  sampling_rate=2e9,
                  trigger='TRIG',
                  trigger_channel=trigger_channel)
@@ -22,13 +22,15 @@ scope.set_params(channels_displayed=(1),
 #%%
 pump = keopsys.Keopsys('10.2.60.244')
 LO = itla.PPCL550(4)
-LO.off()
+osa = yokogawa.Yokogawa(timeout=1e7)
+osa.acquire()
 
 #%%
 
 #%%
-wavelength = 1550.5e-9 #no balance
+wavelength = 1550.3e-9 #no balance
 LO_power=1400
+LO.off()
 #freq3 = itla.m_Hz(wl3)
 LO.set_wavelength(wavelength)
 LO.set_power(LO_power)
@@ -39,12 +41,12 @@ file_name='wavelength={} pump={} triggered={}'.format(wavelength*1e9,pump_power,
 
 #%%
 LO.on()
-pump.APCon()
 LO.mode('whisper')
+pump.APCon()
 #%%
 
-average_freq_window=30e6
-average_time_window=10e-6
+average_freq_window=10e6
+average_time_window=2e-6
 
 scope.acquire()
 trace_1=scope.get_data(1)
@@ -58,7 +60,7 @@ spec1.plot_spectrogram(title='1')
 
 
 mode_index=0
-spec1.find_modes(indicate_modes_on_spectrogram=True,prominance_factor=3)
+spec1.find_modes(indicate_modes_on_spectrogram=False,prominance_factor=3)
 if len(spec1.modes)>0:
     for mode_number,_ in enumerate(spec1.modes):
         spec1.plot_mode_dynamics(mode_number)
