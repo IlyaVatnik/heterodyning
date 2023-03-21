@@ -11,8 +11,8 @@ Created on Thu Oct  1 11:37:33 2020
 
 @author: ilyav
 """
-__version__='2'
-__date__='2023.03.16'
+__version__='2.1'
+__date__='2023.03.20'
 
 from matplotlib import pyplot as plt
 from matplotlib.ticker import EngFormatter
@@ -141,10 +141,10 @@ class Spectrogram():
         self.spec=self.spec[ind:,:]
         
         
-    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=3,rel_height=0.8):
+    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=5,height=2e-4,rel_height=0.8):
         self.modes=[]
         signal_shrinked=np.nanmax(self.spec,axis=1)
-        mode_indexes,_=scipy.signal.find_peaks(signal_shrinked, prominence=prominance_factor*bn.nanstd(signal_shrinked))#distance=self.average_freq_window/(1/2/self.dt/len(self.freqs)))
+        mode_indexes,_=scipy.signal.find_peaks(signal_shrinked, height=height,prominence=prominance_factor*bn.nanstd(signal_shrinked))#distance=self.average_freq_window/(1/2/self.dt/len(self.freqs)))
         for mode_number,p in enumerate(mode_indexes):
             self.modes.append(Mode(p,self.freqs[p]))
             if self.fig_spec is not None and indicate_modes_on_spectrogram:

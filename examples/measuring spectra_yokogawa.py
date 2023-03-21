@@ -4,25 +4,30 @@ from heterodyning.Hardware import keopsys,yokogawa
 import time
 import pickle
 
-folder='data\\'
-type_of_meas='single'
+
+__date__='2023.03.20'
+
+# folder='data\\'
+# type_of_meas='single'
 
 
-# folder='data 200 max_hold try2\\'
-# type_of_meas='hold'
+folder='data 100 max_hold sens Normal\\'
+type_of_meas='hold'
 
 
-pump_min=296
-pump_max=297
+pump_min=322
+pump_max=328
 pump_step=1
 
 
 
 
-N_repeat=1
+N_repeat=50
 
 osa = yokogawa.Yokogawa(timeout=1e7)
 osa.set_average_count(1)
+osa.set_sensitivity('Normal')
+osa.set_span(1546,1554)
 
 
 if type_of_meas=='hold':
@@ -76,3 +81,5 @@ except Exception as e:
 osa.set_average_count(1)
 osa.set_trace_mode('A','WRITE')   
 osa.set_measurement_mode('SINGLE') 
+del osa
+del pump

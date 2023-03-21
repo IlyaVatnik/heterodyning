@@ -64,6 +64,28 @@ class Yokogawa:
     def start_measurements(self):
         self.resource.write_raw(':INITiate:IMMediate')
         
+        
+    def set_sensitivity(self,sens:str):
+        '''
+        sens:
+            NHLD = NORMAL HOLD
+            NAUT = NORMAL AUTO
+            NORMal = NORMAL
+            MID = MID
+            HIGH1 = HIGH1 or HIGH1/CHOP
+            HIGH2 = HIGH2 or HIGH2/CHOP
+            HIGH3 = HIGH3 or HIGH3/CHOP
+        '''
+        self.resource.write_raw(':SENSe:SENSe {}'.format(sens))
+        
+        
+    def set_span(self,start_wavelength=None,stop_wavelength=None):
+        if start_wavelength is not None:
+            Command = ':SENSe:WAVelength:STARt '+f'{start_wavelength:.3f}'+'NM'
+            self.resource.write_raw(Command)
+        if stop_wavelength is not None:
+            Command = ':SENSe:WAVelength:STOP '+f'{stop_wavelength:.3f}'+'NM\n'
+            self.resource.write_raw(Command)
     
     #%%
 if __name__ == '__main__':
