@@ -12,10 +12,10 @@ import time
 import pickle
 import os
 
-__date__='2023.03.20'
+__date__='2023.03.21'
 
-# folder='data\\'
-folder='data 100 max_hold sens Normal\\'
+folder='data\\'
+# folder='data 100 max_hold sens Normal\\'
 
 
 #%%
@@ -31,6 +31,14 @@ plt.figure(1)
 axis=plt.gca()
 pump_array=[]
 gen_power_array=[]
+
+def dBm2W(x):
+    return 10**(x/10)/1000
+
+
+def W2dBm(x):
+    return 10*np.log10(1000*x)
+
 for i,f in enumerate(f_list):
     with open(folder+f,'rb') as file:
         [x,y,time_measured,N_repeat]=pickle.load(file)
@@ -39,14 +47,15 @@ for i,f in enumerate(f_list):
     # axes[i].plot(x,y,label='{:.1f}'.format(p))
     # axes[i].set_title(p)
     plt.plot(x,y,label='{:.1f}'.format(p))
-    pump_array+=[10**(p/10)/1000]
-    gen_power_array+=[np.sum(10**y)/1e-20]
-    print(f,time_measured)
+    pump_array+=[dBm2W(p)]
+    gen_power_array+=[np.sum(10**(y/10))]
+    # print(f,time_measured)
     
 plt.xlabel('Wavelength, nm')
 plt.ylabel('Spectral power density, dBm/nm')
 axis.set_ylim(bottom=-75)
 axis.set_xlim(((1549,1552)))
+
 # plt.tight_layout()
 plt.legend()
 # plt.show()
@@ -55,10 +64,12 @@ plt.savefig('PICS\\Spectra {}.png'.format(folder.split('\\')[0]))
 # figs.tight_layout()
 
 plt.figure(20)
-plt.plot(pump_array,gen_power_array)
+plt.plot(np.array(pump_array),np.array(gen_power_array))
 plt.xlabel('Pump power, W')
 plt.ylabel('Generation power, arb.u')
-# plt.tight_layout()
+secax = plt.gca().secondary_xaxis('top', functions=(W2dBm,dBm2W))
+secax.set_xlabel('Pump power, dBm')
+plt.tight_layout()
 plt.show()
 plt.savefig('PICS\\Powers {}.png'.format(folder.split('\\')[0]))
 
