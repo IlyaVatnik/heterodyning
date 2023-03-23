@@ -7,30 +7,35 @@ Created on Tue Nov 15 13:07:47 2022
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 import time
 import pickle
 import os
 
-__date__='2023.03.21'
+__date__='2023.03.22'
 
-folder='data\\'
-# folder='data 100 max_hold sens Normal\\'
+# folder='data\\'
+folder='data 100 max_hold sens Normal\\'
 
-
+label_size=8
 #%%
 
 
 f_list=os.listdir(folder)
 
-# plt.figure(3)
-# figs, axes=plt.subplots(3,5)
-# axes=axes.flatten()
+plt.figure(3)
+figs, axes=plt.subplots(3,5,figsize=(15,10))
+axes=axes.flatten()
 
 plt.figure(1)
 axis=plt.gca()
 pump_array=[]
 gen_power_array=[]
+
+
+label_size = 8
+mpl.rcParams['xtick.labelsize'] = label_size 
 
 def dBm2W(x):
     return 10**(x/10)/1000
@@ -44,8 +49,13 @@ for i,f in enumerate(f_list):
         [x,y,time_measured,N_repeat]=pickle.load(file)
     p=int(f.split('.')[0])/10
     x=x*1e9
-    # axes[i].plot(x,y,label='{:.1f}'.format(p))
-    # axes[i].set_title(p)
+    try:
+        axes[i].plot(x,y,label='{:.1f}'.format(p))
+        axes[i].set_title(p)
+        axes[i].set_ylim(bottom=-75)
+    except:
+        pass
+    
     plt.plot(x,y,label='{:.1f}'.format(p))
     pump_array+=[dBm2W(p)]
     gen_power_array+=[np.sum(10**(y/10))]
