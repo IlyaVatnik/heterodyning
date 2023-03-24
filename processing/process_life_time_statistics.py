@@ -1,49 +1,40 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
-import os
-from heterodyning import spectrograms
 from matplotlib.ticker import EngFormatter
+from pathlib import Path
 formatter1 = EngFormatter()
 
 
 
-folder_statistics='Statistics\\'
-file_statistics='p=325 wl=1550.35 1.pkl'
-# folder_examples='spectrogram_examples\\1\\'
-pic_folder='PICS\\'
+def process_life_times_from_file(file,label_size=10,data_in_mks=False):
+    f=Path(file)
+    pic_folder=(f.parent.parent/'PICS\\')
+    
+    with open(file,'rb') as open_file:
+        [acqusition_times, life_times]=pickle.load(open_file)
+    if data_in_mks:
+        life_times=np.array(life_times)*1e-6
+    plt.figure()
+    plt.hist(life_times,bins=30)
+    plt.title(f.stem)
+    plt.xlabel('Life time, s')
+    plt.ylabel('Number of events')
+    plt.gca().xaxis.set_major_formatter(formatter1)
+    plt.gca().yaxis.set_major_formatter(formatter1)
+    plt.savefig(pic_folder/(f.stem+' Life times.png'))
+    
+    plt.figure()
+    plt.hist(acqusition_times,bins=30)
+    plt.title(f.stem)
+    plt.xlabel('Acqusition time, s')
+    plt.ylabel('Number of events')
+    plt.gca().xaxis.set_major_formatter(formatter1)
+    plt.gca().yaxis.set_major_formatter(formatter1)
+    plt.savefig(pic_folder/(f.stem+' Acqusition times.png'))
 
 
-with open(folder_statistics+file_statistics,'rb') as f:
-    [acqusition_times, life_times]=pickle.load(f)
+if __name__=='__main__':
+    file=r"F:\!Projects\!Rayleigh lasers - localisation, heterodyne, coherent detection\2023-2022 different fibers and different data\Metrocore 25 km\2022.11.17 Metrocore mode life_time staticstics\data\p=293 wl=1551 2.pkl"
+    process_life_times_from_file(file)
 
-plt.figure()
-plt.hist(life_times,bins=30)
-plt.title(file_statistics)
-plt.xlabel('Life time, s')
-plt.ylabel('Number of events')
-plt.gca().xaxis.set_major_formatter(formatter1)
-plt.gca().yaxis.set_major_formatter(formatter1)
-plt.savefig(pic_folder+file_statistics+' Life times.png')
-
-plt.figure()
-plt.hist(acqusition_times,bins=30)
-plt.title(file_statistics)
-plt.xlabel('Acqusition time, s')
-plt.ylabel('Number of events')
-plt.gca().xaxis.set_major_formatter(formatter1)
-plt.gca().yaxis.set_major_formatter(formatter1)
-plt.savefig(pic_folder+file_statistics+' aquisition times.png')
-
-
-
-
-     
-# f_list=os.listdir(folder_examples)
-# file1=f_list[0]
-# mode_index=0
-# spec1=spectrograms.load_from_file(folder_examples+file1)
-# fig,axes=spec1.plot_spectrogram(title=file1)
-# spec1.find_modes(indicate_modes_on_spectrogram=False,prominance_factor=3)
-# # axes.axhline(spec1.modes[mode_index].freq,color='yellow')
-# plt.savefig(pic_folder+file1+' Ch 1.png')
