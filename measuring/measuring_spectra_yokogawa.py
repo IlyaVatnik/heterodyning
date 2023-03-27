@@ -5,29 +5,29 @@ import time
 import pickle
 
 
-__date__='2023.03.20'
+__date__='2023.03.27'
 
-# folder='data\\'
-# type_of_meas='single'
-
-
-folder='data 100 max_hold sens Normal\\'
-type_of_meas='hold'
+folder='data averaged\\'
+type_of_meas='single'
 
 
-pump_min=322
-pump_max=328
+# folder='data 100 max_hold sens Normal\\'
+# type_of_meas='hold'
+
+
+pump_min=285
+pump_max=304
 pump_step=1
 
 
 
-
-N_repeat=50
+N_averaged=100
+N_repeat=1
 
 osa = yokogawa.Yokogawa(timeout=1e7)
-osa.set_average_count(1)
+osa.set_average_count(N_averaged)
 osa.set_sensitivity('Normal')
-osa.set_span(1546,1554)
+osa.set_span(1546,1556)
 
 
 if type_of_meas=='hold':
