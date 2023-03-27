@@ -112,19 +112,51 @@ class Spectrogram():
         self.needToUpdateSpec=True
     
  
-    def plot_spectrogram(self,font_size=11,title='',vmin=None,vmax=None,cmap='jet'):
+    def plot_spectrogram(self,font_size=11,title='',vmin=None,vmax=None,cmap='jet',lang='en',formatter='sci'):
         matplotlib.rcParams.update({'font.size': font_size})
         fig, ax=plt.subplots()
-        im=ax.pcolorfast(self.times,self.freqs,self.spec,cmap=cmap,vmin=vmin,vmax=vmax)
-        ax.xaxis.set_major_formatter(formatter1)
-        ax.yaxis.set_major_formatter(formatter1)
-        plt.ylabel('Frequency detuning, Hz')
-        plt.xlabel('Time, s')
-        cbar=plt.colorbar(im)
-        cbar.set_label('Intensity, arb.u.')
-        cbar.ax.yaxis.set_major_formatter(formatter1)
+        
+        
+
+        
+        if formatter=='sci':
+            im=ax.pcolorfast(self.times,self.freqs,self.spec,cmap=cmap,vmin=vmin,vmax=vmax)
+            cbar=plt.colorbar(im)
+            ax.xaxis.set_major_formatter(formatter1)
+            ax.yaxis.set_major_formatter(formatter1)
+            cbar.ax.yaxis.set_major_formatter(formatter1)
+            if lang=='en':
+                plt.ylabel('Frequency detuning, Hz')
+                plt.xlabel('Time, s')
+                cbar.set_label('Intensity, arb.u.')
+            elif lang=='ru':
+                plt.ylabel('Отстройка, Гц')
+                plt.xlabel('Время, сек')
+                cbar.set_label('Интенсивность, отн. ед.')
+        
+        elif formatter=='normal':
+            im=ax.pcolorfast(self.times*1e3,self.freqs/1e6,self.spec*1e3,cmap=cmap,vmin=vmin,vmax=vmax)
+            cbar=plt.colorbar(im)
+            if lang=='en':
+                plt.ylabel('Frequency detuning, MHz')
+                plt.xlabel('Time, ms')
+                cbar.set_label('Intensity, arb.u.')
+            elif lang=='ru':
+                plt.ylabel('Отстройка, МГц')
+                plt.xlabel('Время, мс')
+                cbar.set_label('Интенсивность, отн. ед.')
+            
+        
+        
+            
+            
+            
         self.fig_spec=fig
         self.ax_spec=ax
+        
+
+            
+        
         plt.title(title)
         plt.tight_layout()
         
@@ -333,7 +365,7 @@ def create_spectrogram_from_file_two_channels_agilent(f_name,
                                                   detrend=False,
                                                   scaling='spectrum',
                                                   mode='magnitude')
-        spec=np.rot90(spec)
+        # spec=np.rot90(spec)
         return freq,time,spec
     
     def _get_power_spectrogram(data_dict,win_time,overlap_time):
@@ -347,7 +379,7 @@ def create_spectrogram_from_file_two_channels_agilent(f_name,
                                                   detrend=False,
                                                   scaling='spectrum',
                                                   mode='magnitude')
-        spec=np.rot90(spec)
+        # spec=np.rot90(spec)
         return freq,time,spec
     
     
@@ -367,17 +399,17 @@ def create_spectrogram_from_file_two_channels_agilent(f_name,
         average_factor_for_times=int(average_time_window/(win_time-overlap_time))
     
 
-        spec_1=bn.move_mean(spec_1,average_factor_for_times,1,axis=0)
-        spec_1=bn.move_mean(spec_1,average_factor_for_freq,1,axis=1)
+        spec_1=bn.move_mean(spec_1,average_factor_for_times,1,axis=1)
+        spec_1=bn.move_mean(spec_1,average_factor_for_freq,1,axis=0)
 
-    spec=spec_1-(bn.nanmean(spec_1,axis=1)).reshape(len(time),1)
+    # spec=spec_1-(bn.nanmean(spec_1,axis=0)).reshape(len(time),0)
     params=[win_time,
             overlap_time,
             IsAveraging,
             average_time_window,    
             average_freq_window,
             channels]
-    return Spectrogram(time,freq, spec,params)
+    return Spectrogram(time,freq, spec_1,params)
 
 
         
