@@ -146,30 +146,30 @@ class Scope:
             self.resource.write_raw(bytes(':WAVeform:SOURce CHAN{}'.format(ch_num), encoding = 'utf8'))
         return self.query_string(':WAVeform:SOURce?')+b'\n'
     
-    def set_params(self, average_count = 0, # if 0 - no average
-                   trace_points = 0, # if 0 - minimum
-                   sampling_rate = 0, # if 0 - minimum
-                   trigger = 'AUTO',
-                   trigger_channel=1,
-                   channels_displayed=(1,)):
+    # def set_params(self, average_count = 0, # if 0 - no average
+    #                trace_points = 0, # if 0 - minimum
+    #                sampling_rate = 0, # if 0 - minimum
+    #                trigger = 'AUTO',
+    #                trigger_channel=1,
+    #                channels_displayed=(1,)):
 
-        channels_coupling={}
-        for ch in channels_displayed:
-            channels_coupling[ch]='DC50'
+    #     channels_coupling={}
+    #     for ch in channels_displayed:
+    #         channels_coupling[ch]='DC50'
             
-        self.macro_setup(channels_displayed, channels_coupling,
-                         mode = 'RTIMe', average_count=average_count, # if 0 - no average
-                         trace_points = trace_points, # if 0 - minimum
-                         sampling_rate = sampling_rate, # if 0 - minimum
-                         trigger = trigger,
-                         trigger_channel=trigger_channel,
-                         wave_byteorder = 'MSBF',
-                         wave_format = 'WORD', 
-                         wave_source = channels_displayed[0], # channel number
-                         wave_view = 'ALL', # ALL for full data, MAIN for display drawn data
-                         streaming = 'ON',
-                         header = 'OFF'
-                         )
+    #     self.macro_setup(channels_displayed, channels_coupling,
+    #                      mode = 'RTIMe', average_count=average_count, # if 0 - no average
+    #                      trace_points = trace_points, # if 0 - minimum
+    #                      sampling_rate = sampling_rate, # if 0 - minimum
+    #                      trigger = trigger,
+    #                      trigger_channel=trigger_channel,
+    #                      wave_byteorder = 'MSBF',
+    #                      wave_format = 'WORD', 
+    #                      wave_source = channels_displayed[0], # channel number
+    #                      wave_view = 'ALL', # ALL for full data, MAIN for display drawn data
+    #                      streaming = 'ON',
+    #                      header = 'OFF'
+    #                      )
     
     def macro_setup(self,
             channels_displayed = (1,),

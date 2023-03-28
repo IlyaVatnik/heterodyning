@@ -16,7 +16,7 @@ def process_life_times_from_file(file,label_size=10,data_in_mks=False):
     if data_in_mks:
         life_times=np.array(life_times)*1e-6
     plt.figure()
-    plt.hist(life_times,bins=30)
+    plt.hist(life_times,bins=40)
     plt.title(f.stem)
     plt.xlabel('Life time, s')
     plt.ylabel('Number of events')
@@ -35,6 +35,6 @@ def process_life_times_from_file(file,label_size=10,data_in_mks=False):
 
 
 if __name__=='__main__':
-    file=r"F:\!Projects\!Rayleigh lasers - localisation, heterodyne, coherent detection\2023-2022 different fibers and different data\Metrocore 25 km\2022.11.17 Metrocore mode life_time staticstics\data\p=293 wl=1551 2.pkl"
+    file=r"p=296 wl=1550.35.pkl"
     process_life_times_from_file(file)
 

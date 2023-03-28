@@ -23,7 +23,7 @@ class Keopsys:
             result=self.command('ASS=2')
         elif self.mode=='current':
             result=self.command('ASS=1')
-        print('power is on')
+        print('Pump is on')
         return result
     
     def APCoff(self):

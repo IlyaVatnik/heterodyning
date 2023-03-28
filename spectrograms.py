@@ -11,8 +11,8 @@ Created on Thu Oct  1 11:37:33 2020
 
 @author: ilyav
 """
-__version__='2.1'
-__date__='2023.03.20'
+__version__='2.2'
+__date__='2023.03.28'
 
 from matplotlib import pyplot as plt
 from matplotlib.ticker import EngFormatter
@@ -54,8 +54,8 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     if IsAveraging:
         average_factor_for_freq=int(average_freq_window/(freqs[1]-freqs[0]))
         average_factor_for_times=int(average_time_window/(win_time-overlap_time))
-        spec=bn.move_mean(spec,average_factor_for_times,1,axis=0)
-        spec=bn.move_mean(spec,average_factor_for_freq,1,axis=1)
+        spec=bn.move_mean(spec,average_factor_for_times,1,axis=1)
+        spec=bn.move_mean(spec,average_factor_for_freq,1,axis=0)
     
     params=[win_time,
             overlap_time,
@@ -173,7 +173,7 @@ class Spectrogram():
         self.spec=self.spec[ind:,:]
         
         
-    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=5,height=2e-4,rel_height=0.8):
+    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=3,height=2e-4,rel_height=0.97):
         self.modes=[]
         signal_shrinked=np.nanmax(self.spec,axis=1)
         mode_indexes,_=scipy.signal.find_peaks(signal_shrinked, height=height,prominence=prominance_factor*bn.nanstd(signal_shrinked))#distance=self.average_freq_window/(1/2/self.dt/len(self.freqs)))
@@ -188,9 +188,23 @@ class Spectrogram():
             self.modes[mode_number].birth_time=self.times[int(left_ips[0])]
             self.modes[mode_number].death_time=self.times[int(right_ips[0])]
             self.modes[mode_number].life_time=self.modes[mode_number].death_time-self.modes[mode_number].birth_time
-        
             
         return self.modes
+    
+    
+    def plot_all_modes(self):
+        for i,_ in enumerate(self.modes):
+            self.plot_mode_dynamics(i)
+            plt.title(r'$\delta \nu$={:.0f} MHz, life time={:.2f} ms'.format(self.modes[i].freq/1e6,self.modes[i].life_time*1e3))
+            plt.axvline(self.modes[i].birth_time)
+            plt.axvline(self.modes[i].death_time)
+            
+    def print_all_modes(self):
+        for i,_ in enumerate(self.modes):
+           print('Mode {}, detuning={:.0f} MHz, life time={:.2f} ms'.format(i,self.modes[i].freq/1e6,self.modes[i].life_time*1e3))
+
+    
+    
     
     def remove_mode_copies(self):
         sz = len(self.modes)

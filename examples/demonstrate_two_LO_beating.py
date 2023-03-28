@@ -18,8 +18,8 @@ scope.set_params(channels_displayed=(1,),
 #%%
 LO1 = itla.PPCL550(4)
 LO2 = itla.PPCL550(3)
-osa = yokogawa.Yokogawa(timeout=1e7)
-osa.acquire()
+# osa = yokogawa.Yokogawa(timeout=1e7)
+# osa.acquire()
 
 #%%
 wavelength1= 1550.300e-9 #no balance
@@ -44,7 +44,7 @@ LO2.on()
 
 LO1.mode('whisper')
 LO2.mode('dither')
-osa.acquire()
+# osa.acquire()
 #%%
 win_time=10e-6
 overlap_time=win_time*0.8
