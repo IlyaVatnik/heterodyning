@@ -4,11 +4,13 @@ from heterodyning.spectrograms import create_spectrogram_from_data
 from heterodyning.Hardware import scope,itla,yokogawa,scope_rigol
 import matplotlib.pyplot as plt
 
-
+__version__='2'
+__date__='2023.03.29'
+#%%
 
 # scope=scope.Scope('WINDOWS-E76DLEM')
 # scope=scope_rigol.Scope('RIGOL_DS8A2')
-scope=scope_rigol.Scope('10.2.60.117')
+scope=scope_rigol.Scope('168.0.0.1')
 #%%
 # trigger_channel=1
 # scope.set_params(channels_displayed=(1,),
@@ -18,16 +20,16 @@ scope=scope_rigol.Scope('10.2.60.117')
 #                  trigger_channel=trigger_channel)
 
 #%%
-LO1 = itla.PPCL550(4)
-LO2 = itla.PPCL550(3)
+LO1 = itla.PPCL550(9)
+LO2 = itla.PPCL550(10)
 # osa = yokogawa.Yokogawa(timeout=1e7)
 # osa.acquire()
 
 #%%
-wavelength1= 1550.300e-9 #no balance
-wavelength2=1550.301e-9 #no balance
-LO1_power=800
-LO2_power=800
+wavelength1= 1550.000e-9 # in m 
+wavelength2=1550.000e-9 # in m
+LO1_power=800 # in 0.01 dBm
+LO2_power=800 # in 0.01 dBm
 
 
 
@@ -45,16 +47,17 @@ LO1.on()
 LO2.on()
 
 LO1.mode('whisper')
-LO2.mode('dither')
+LO2.mode('no dither')
+# LO2.mode('dither')
 # osa.acquire()
 #%%
-win_time=1e-6
-overlap_time=win_time*0.8
+win_time=2e-6
+overlap_time=win_time*0
 average_freq_window=10e6
 average_time_window=5e-6
 IsAveraging=False
 
-scope.set_wfm_source(1)
+# scope.set_wfm_source(1)
     
 scope.acquire()
     
@@ -66,7 +69,10 @@ spec1=create_spectrogram_from_data(trace_1.data,trace_1.xinc,IsAveraging=IsAvera
 
                                   
 
-spec1.plot_spectrogram(title='1')
+spec1.plot_spectrogram()
+
+#%%
+LO2.set_FTFrequency(200e6) # fine tune in Hz
 
 #%%
 LO1.off()
