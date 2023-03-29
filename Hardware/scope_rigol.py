@@ -24,7 +24,7 @@ class Wave:
         self.xinc = xinC
         
 
-class Rigol:
+class Scope:
     
     def __init__(self, host, protocol = 'inst0', backend = None, timeout = 5000):
         if backend:
@@ -34,6 +34,9 @@ class Rigol:
         self.resource.timeout = timeout
         
         stdout.write(str(self.query_string('*IDN?')+b'\n'))
+        
+        self.set_wfm_mode('RAW') #for all data in memory
+        self.set_wfm_format('BYTE')
     """      
     def err_code(self):
         self.resource.write_raw(b':SYSTem:ERRor?')
@@ -231,9 +234,9 @@ class Rigol:
     
                 
 if __name__ == '__main__':
-    
+    import matplotlib.pyplot as plt
     ch = 1
-    scope = Rigol('10.2.60.117')
+    scope = Scope('10.2.60.117')
 #%%
     """
     averaging needs to be turned on\off manually
@@ -251,11 +254,12 @@ if __name__ == '__main__':
     print(scope.get_channel_impedance(ch))
     scope.set_wfm_source(ch)
     print(scope.get_wfm_source())
-    scope.set_memory_depth(100000)
+    scope.set_memory_depth(2000000)
     print(scope.get_memory_depth())
 #%%
     scope.acquire()
     wave = scope.query_wave_fast()
+    plt.plot(wave.data)
 
 
     
