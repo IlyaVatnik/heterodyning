@@ -88,8 +88,9 @@ def process_spectra_from_folder(folder,label_size=10,wavelength_min=1549,wavelen
     axis.set_ylim(bottom=min_noise_level)
     axis.set_xlim(((wavelength_min,wavelength_max)))
     
-    # plt.tight_layout()
-    # plt.legend()
+    plt.legend()
+    plt.tight_layout()
+    
     # plt.show()
     plt.savefig(pic_folder.__str__()+'\\Spectra {}.png'.format(folder.split('\\')[-1]))
     

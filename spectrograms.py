@@ -53,7 +53,7 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     
     if IsAveraging:
         average_factor_for_freq=int(average_freq_window/(freqs[1]-freqs[0]))
-        average_factor_for_times=int(average_time_window/(win_time-overlap_time))
+        average_factor_for_times=int(average_time_window/(times[1]-times[0]))
         spec=bn.move_mean(spec,average_factor_for_times,1,axis=1)
         spec=bn.move_mean(spec,average_factor_for_freq,1,axis=0)
     
@@ -112,7 +112,7 @@ class Spectrogram():
         self.needToUpdateSpec=True
     
  
-    def plot_spectrogram(self,font_size=11,title='',vmin=None,vmax=None,cmap='jet',lang='en',formatter='sci'):
+    def plot_spectrogram(self,font_size=11,title='',vmin=None,vmax=None,cmap='jet',lang='en',formatter='sci',show_colorbar=True):
         matplotlib.rcParams.update({'font.size': font_size})
         fig, ax=plt.subplots()
         
@@ -124,27 +124,33 @@ class Spectrogram():
             cbar=plt.colorbar(im)
             ax.xaxis.set_major_formatter(formatter1)
             ax.yaxis.set_major_formatter(formatter1)
-            cbar.ax.yaxis.set_major_formatter(formatter1)
+            if show_colorbar:
+                cbar.ax.yaxis.set_major_formatter(formatter1)
             if lang=='en':
                 plt.ylabel('Frequency detuning, Hz')
                 plt.xlabel('Time, s')
-                cbar.set_label('Intensity, arb.u.')
+                if show_colorbar:
+                    cbar.set_label('Intensity, arb.u.')
             elif lang=='ru':
                 plt.ylabel('Отстройка, Гц')
                 plt.xlabel('Время, сек')
-                cbar.set_label('Интенсивность, отн. ед.')
+                if show_colorbar:
+                    cbar.set_label('Интенсивность, отн. ед.')
         
         elif formatter=='normal':
             im=ax.pcolorfast(self.times*1e3,self.freqs/1e6,self.spec*1e3,cmap=cmap,vmin=vmin,vmax=vmax)
-            cbar=plt.colorbar(im)
+            if show_colorbar:
+                cbar=plt.colorbar(im)
             if lang=='en':
                 plt.ylabel('Frequency detuning, MHz')
                 plt.xlabel('Time, ms')
-                cbar.set_label('Intensity, arb.u.')
+                if show_colorbar:
+                    cbar.set_label('Intensity, arb.u.')
             elif lang=='ru':
                 plt.ylabel('Отстройка, МГц')
                 plt.xlabel('Время, мс')
-                cbar.set_label('Интенсивность, отн. ед.')
+                if show_colorbar:
+                    cbar.set_label('Интенсивность, отн. ед.')
             
         
         
@@ -398,10 +404,10 @@ def create_spectrogram_from_file_two_channels_agilent(f_name,
     
     
     data_dict=b_reader.read(f_name)
-    freq, time, spec_1=_get_heterodyning_spectrogram(data_dict,win_time,overlap_time)
+    freq, times, spec_1=_get_heterodyning_spectrogram(data_dict,win_time,overlap_time)
     m1=np.mean(spec_1)
     s1=np.std(spec_1)
-    freq, time, spec_2=_get_power_spectrogram(data_dict,win_time,overlap_time)
+    freq, times, spec_2=_get_power_spectrogram(data_dict,win_time,overlap_time)
     m3=np.mean(spec_2)
     s3=np.std(spec_2)
     mask=spec_2>m3+2*s3
@@ -410,7 +416,7 @@ def create_spectrogram_from_file_two_channels_agilent(f_name,
     if IsAveraging:
         
         average_factor_for_freq=int(average_freq_window/(freq[1]-freq[0]))
-        average_factor_for_times=int(average_time_window/(win_time-overlap_time))
+        average_factor_for_times=int(average_time_window/(times[1]-times[0]))
     
 
         spec_1=bn.move_mean(spec_1,average_factor_for_times,1,axis=1)
@@ -423,7 +429,7 @@ def create_spectrogram_from_file_two_channels_agilent(f_name,
             average_time_window,    
             average_freq_window,
             channels]
-    return Spectrogram(time,freq, spec_1,params)
+    return Spectrogram(times,freq, spec_1,params)
 
 
         
