@@ -53,7 +53,8 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     
     if IsAveraging:
         average_factor_for_freq=int(average_freq_window/(freqs[1]-freqs[0]))
-        average_factor_for_times=int(average_time_window/(win_time-overlap_time))
+        average_factor_for_times=int(average_time_window/(times[1]-times[0]))
+        # print(average_time_window,times[1],times[0])
         spec=bn.move_mean(spec,average_factor_for_times,1,axis=1)
         spec=bn.move_mean(spec,average_factor_for_freq,1,axis=0)
     

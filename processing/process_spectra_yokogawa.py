@@ -21,7 +21,7 @@ __date__='2023.03.23'
 
 
 
-def process_spectra_from_folder(folder,label_size=10,wavelength_min=1549,wavelength_max=1552,indicate_peaks=False):
+def process_spectra_from_folder(folder,label_size=10,wavelength_min=1549,wavelength_max=1552,indicate_peaks=False, plot_graphs=True):
     folder+='\\'
     pic_folder=Path(folder).parent/'PICS\\'
     f_list=os.listdir(folder)
@@ -81,32 +81,36 @@ def process_spectra_from_folder(folder,label_size=10,wavelength_min=1549,wavelen
         gen_power_array+=[np.sum(10**(y/10))]
         # print(f,time_measured)
         
-    figs.savefig(pic_folder.__str__()+'\\Spectra layout {}.png'.format(folder.split('\\')[-1]))
+        
+    if plot_graphs:
+        figs.savefig(pic_folder.__str__()+'\\Spectra layout {}.png'.format(folder.split('\\')[-1]))
+        
+        axis.set_xlabel('Wavelength, nm')
+        axis.set_ylabel('Spectral power density, dBm/nm')
+        axis.set_ylim(bottom=min_noise_level)
+        axis.set_xlim(((wavelength_min,wavelength_max)))
+        
+        # plt.tight_layout()
+        # plt.legend()
+        # plt.show()
+        plt.savefig(pic_folder.__str__()+'\\Spectra {}.png'.format(folder.split('\\')[-1]))
+        
+        
+        # figs.tight_layout()
+        
+        plt.figure(4)
+        plt.plot(np.array(pump_array),np.array(gen_power_array))
+        plt.xlabel('Pump power, W')
+        plt.ylabel('Generation power, arb.u')
+        secax = plt.gca().secondary_xaxis('top', functions=(W2dBm,dBm2W))
+        secax.set_xlabel('Pump power, dBm')
+        for pump in Pumps_with_modes:
+           plt.gca().axvspan(dBm2W(W2dBm(pump)-0.049), dBm2W(W2dBm(pump)+0.049), alpha=0.1, color='green')
+        plt.tight_layout()
+        plt.show()
+        plt.savefig(pic_folder.__str__()+'\\Powers {}.png'.format(folder.split('\\')[-1]))
     
-    axis.set_xlabel('Wavelength, nm')
-    axis.set_ylabel('Spectral power density, dBm/nm')
-    axis.set_ylim(bottom=min_noise_level)
-    axis.set_xlim(((wavelength_min,wavelength_max)))
-    
-    # plt.tight_layout()
-    # plt.legend()
-    # plt.show()
-    plt.savefig(pic_folder.__str__()+'\\Spectra {}.png'.format(folder.split('\\')[-1]))
-    
-    
-    # figs.tight_layout()
-    
-    plt.figure(4)
-    plt.plot(np.array(pump_array),np.array(gen_power_array))
-    plt.xlabel('Pump power, W')
-    plt.ylabel('Generation power, arb.u')
-    secax = plt.gca().secondary_xaxis('top', functions=(W2dBm,dBm2W))
-    secax.set_xlabel('Pump power, dBm')
-    for pump in Pumps_with_modes:
-       plt.gca().axvspan(dBm2W(W2dBm(pump)-0.049), dBm2W(W2dBm(pump)+0.049), alpha=0.1, color='green')
-    plt.tight_layout()
-    plt.show()
-    plt.savefig(pic_folder.__str__()+'\\Powers {}.png'.format(folder.split('\\')[-1]))
+    return pump_array,gen_power_array,Pumps_with_modes
 
 if __name__=='__main__':
     folder=r"F:\!Projects\!Rayleigh lasers - localisation, heterodyne, coherent detection\2023-2022 different fibers and different data\SMF-28 32 km\2022.11.29 yokogawa spectra test\data"
