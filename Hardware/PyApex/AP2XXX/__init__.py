@@ -1,7 +1,7 @@
 import socket
 import os, sys, re
 
-from heterodyning.Hardware.PyApex.Common import Send, Receive
+from ..Common import Send, Receive
 
 class AP2XXX():
     '''
@@ -71,8 +71,8 @@ class AP2XXX():
         '''
         Close connexion to AP2XXX equipment
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_COMMUNICATION
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_COMMUNICATION
+        from ..Errors import ApexError
 
         if self.__Simulation:
             self.__Connected = False
@@ -99,7 +99,7 @@ class AP2XXX():
         TimeOut is expressed in seconds
         In some functions like 'OSA.Run()', the timeout is disabled
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE
+        from .Constantes import APXXXX_ERROR_ARGUMENT_TYPE
 
         if not isinstance(TimeOut, (int, float)):
             raise ApexError(APXXXX_ERROR_ARGUMENT_TYPE, "TimeOut")
@@ -121,7 +121,7 @@ class AP2XXX():
         '''
         Return string ID of AP2XXX equipment
         '''
-        from Hardware.PyApex.Constantes import SimuAP2XXX_ID
+        from ..Constantes import SimuAP2XXX_ID
 
         if self.__Simulation:
             return SimuAP2XXX_ID

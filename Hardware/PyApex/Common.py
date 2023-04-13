@@ -1,7 +1,7 @@
 
 def Send(Connexion, Command):
-    from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_BADCOMMAND
-    from Hardware.PyApex.Errors import ApexError
+    from .Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_BADCOMMAND
+    from .Errors import ApexError
     from sys import exit
     from socket import timeout
 
@@ -16,8 +16,8 @@ def Send(Connexion, Command):
 
 
 def Receive(Connexion, ByteNumber=1024):
-    from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_COMMUNICATION
-    from Hardware.PyApex.Errors import ApexError
+    from .Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_COMMUNICATION
+    from .Errors import ApexError
     from sys import exit
     from socket import timeout
 
@@ -34,8 +34,8 @@ def Receive(Connexion, ByteNumber=1024):
 
 
 def ReceiveUntilChar(Connexion, EndCharacter = "\n"):
-    from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_COMMUNICATION
-    from Hardware.PyApex.Errors import ApexError
+    from .Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_COMMUNICATION
+    from .Errors import ApexError
     from sys import exit
     from socket import timeout
 

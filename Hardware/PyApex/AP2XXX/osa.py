@@ -1,13 +1,13 @@
-from Hardware.PyApex.Common import Send, Receive, ReceiveUntilChar
+from ..Common import Send, Receive, ReceiveUntilChar
 import sys
-from Hardware.PyApex.Constantes import *
-from Hardware.PyApex.Errors import ApexError
+from ..Constantes import *
+from ..Errors import ApexError
 from random import random
 from math import log10
-from Hardware.PyApex.Constantes import SimuAP2XXX_StartWavelength, SimuAP2XXX_StopWavelength
-from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE
-from Hardware.PyApex.Errors import ApexError
-from Hardware.PyApex.AP2XXX import AP2XXX
+from ..Constantes import SimuAP2XXX_StartWavelength, SimuAP2XXX_StopWavelength
+from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE
+from ..Errors import ApexError
+from ..AP2XXX import AP2XXX
 
 class OSA(AP2XXX):
     def __init__(self,host, Simulation=False):
@@ -67,7 +67,7 @@ class OSA(AP2XXX):
         '''
         Return the type of the OSA. For example "AP2061" for an AP2061
         '''
-        from Hardware.PyApex.Errors import ApexError
+        from ..Errors import ApexError
         import re
 
         Type = self.__ID.split("/")[1]
@@ -80,8 +80,8 @@ class OSA(AP2XXX):
         Set the start wavelength of the measurement span
         Wavelength is expressed in nm
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
+        from ..Errors import ApexError
 
         if not isinstance(Wavelength, (float, int)):
             raise ApexError(APXXXX_ERROR_ARGUMENT_TYPE, "Wavelength")
@@ -115,8 +115,8 @@ class OSA(AP2XXX):
         Set the stop wavelength of the measurement span
         Wavelength is expressed in nm
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
+        from ..Errors import ApexError
 
         if not isinstance(Wavelength, (float, int)):
             raise ApexError(APXXXX_ERROR_ARGUMENT_TYPE, "Wavelength")
@@ -150,8 +150,8 @@ class OSA(AP2XXX):
         Set the wavelength measurement span
         Span is expressed in nm
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
+        from ..Errors import ApexError
 
         if not isinstance(Span, (float, int)):
             raise ApexError(APXXXX_ERROR_ARGUMENT_TYPE, "Span")
@@ -185,8 +185,8 @@ class OSA(AP2XXX):
         Set the wavelength measurement center
         Center is expressed in nm
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
+        from ..Errors import ApexError
 
         if not isinstance(Center, (float, int)):
             raise ApexError(APXXXX_ERROR_ARGUMENT_TYPE, "Center")
@@ -245,9 +245,9 @@ class OSA(AP2XXX):
         Set the Y-axis power per division value
         Resolution is expressed in the value of 'ScaleYUnit'
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
-        from Hardware.PyApex.Constantes import AP2XXX_MINYRES, AP2XXX_MAXYRES
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
+        from ..Constantes import AP2XXX_MINYRES, AP2XXX_MAXYRES
+        from ..Errors import ApexError
 
         if not isinstance(Resolution, (float, int)):
             raise ApexError(APXXXX_ERROR_ARGUMENT_TYPE, "Resolution")
@@ -438,8 +438,8 @@ class OSA(AP2XXX):
         Set the noise mask of the signal (values under this mask are set to this value)
         Noise mask is expressed in the value of 'ScaleYUnit'
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE
+        from ..Errors import ApexError
 
         if not isinstance(NoiseMaskValue, (float, int)):
             raise ApexError(APXXXX_ERROR_ARGUMENT_TYPE, "NoiseMaskValue")
@@ -460,8 +460,8 @@ class OSA(AP2XXX):
             - "GHz" or 0, X-Axis unit is in GHz (default)
             - "nm" or 1, X-Axis unit is in nm
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
+        from ..Errors import ApexError
 
         if isinstance(ScaleXUnit, str):
             if ScaleXUnit.lower() == "nm":
@@ -492,8 +492,8 @@ class OSA(AP2XXX):
             - "lin" or 0, Y-Axis unit is in mW (default)
             - "log" or 1, Y-Axis unit is in dBm or dBm
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
+        from ..Errors import ApexError
 
         if isinstance(ScaleYUnit, str):
             if ScaleYUnit.lower() == "log":
@@ -526,8 +526,8 @@ class OSA(AP2XXX):
             - "1" or 2, just the polarization channel 1 is measured
             - "2" or 3, just the polarization channel 2 is measured
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
+        from ..Errors import ApexError
 
         if isinstance(PolarizationMode, str):
             if PolarizationMode.lower() == "1&2":
@@ -628,8 +628,8 @@ class OSA(AP2XXX):
             - Find = "ALL" : all peaks are returned in a list
             - Find = "MEAN" : a mean value of all peaks is returned
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
+        from ..Errors import ApexError
 
         if not isinstance(TraceNumber, int):
             raise ApexError(APXXXX_ERROR_ARGUMENT_TYPE, "TraceNumber")
@@ -749,9 +749,9 @@ class OSA(AP2XXX):
         TraceNumber is an integer between 1 (default) and 6
         NbAverage is the number of average to perform after the span selection (no average by default)
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
-        from Hardware.PyApex.Constantes import AP2XXX_WLMIN, AP2XXX_WLMAX
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
+        from ..Constantes import AP2XXX_WLMIN, AP2XXX_WLMAX
+        from ..Errors import ApexError
 
         if not isinstance(TraceNumber, int):
             raise ApexError(APXXXX_ERROR_ARGUMENT_TYPE, "TraceNumber")
@@ -799,8 +799,8 @@ class OSA(AP2XXX):
         TraceNumber is an integer between 1 (default) and 6
         Position is the X-axis position of the marker expressed in the value of 'ScaleXUnit'
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
+        from ..Errors import ApexError
 
         if not isinstance(TraceNumber, int):
             raise ApexError(APXXXX_ERROR_ARGUMENT_TYPE, "TraceNumber")
@@ -828,8 +828,8 @@ class OSA(AP2XXX):
             Axis = 1 or 'Y' : get the Y-axis values of the markers (default)
             Axis = 2 or 'XY': get the X-axis and Y-axis values of the markers
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
+        from ..Errors import ApexError
 
         if not isinstance(Axis, (int, str)):
             raise ApexError(APXXXX_ERROR_ARGUMENT_TYPE, "Axis")
@@ -904,8 +904,8 @@ class OSA(AP2XXX):
         Deletes all markers of a selected trace
         TraceNumber is an integer between 1 (default) and 6
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
+        from ..Errors import ApexError
 
         if not isinstance(TraceNumber, int):
             raise ApexError(APXXXX_ERROR_ARGUMENT_TYPE, "TraceNumber")
@@ -932,8 +932,8 @@ class OSA(AP2XXX):
             - Get = "LEVEL" : only the line width peak level is returned
             - Get = "ALL" : all line width values are returned in a list
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE
+        from ..Errors import ApexError
 
         if not isinstance(TraceNumber, int):
             raise ApexError(APXXXX_ERROR_ARGUMENT_TYPE, "TraceNumber")
@@ -986,8 +986,8 @@ class OSA(AP2XXX):
             - Type = "DAT" : data are saved in a binary format (default)
             - Type = "TXT" : data are saved in a text format
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE, APXXXX_ERROR_BAD_FILENAME
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE, APXXXX_ERROR_BAD_FILENAME
+        from ..Errors import ApexError
         from os.path import isdir, dirname
 
         if not isinstance(TraceNumber, int):
@@ -1024,8 +1024,8 @@ class OSA(AP2XXX):
             - True: the trace TraceNumber is locked
             - False: the trace TraceNumber is unlocked
         '''
-        from Hardware.PyApex.Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE, APXXXX_ERROR_BAD_FILENAME
-        from Hardware.PyApex.Errors import ApexError
+        from ..Constantes import APXXXX_ERROR_ARGUMENT_TYPE, APXXXX_ERROR_ARGUMENT_VALUE, APXXXX_ERROR_BAD_FILENAME
+        from ..Errors import ApexError
 
         if not isinstance(TraceNumber, int):
             raise ApexError(APXXXX_ERROR_ARGUMENT_TYPE, "TraceNumber")

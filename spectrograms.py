@@ -151,7 +151,7 @@ class Spectrogram():
  
     def plot_spectrogram(self,font_size=11,title='',
                          vmin=None,vmax=None,cmap='jet',lang='en',
-                         formatter='sci',scale='log',
+                         formatter='sci',scale='lin',
                          show_colorbar=True):
         '''
         
@@ -309,14 +309,17 @@ class Spectrogram():
         self.spec=self.spec[:ind]
         
         
-    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=3,height=1e-5,rel_height=0.97):
+    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=3,height=0.1e-9,rel_height=0.99,plot_shrinked_spectrum=False):
         self.modes=[]
         signal_shrinked=np.nanmax(self.spec,axis=1)
         mode_indexes,_=scipy.signal.find_peaks(signal_shrinked, height=height,prominence=prominance_factor*bn.nanstd(signal_shrinked))#distance=self.average_freq_window/(1/2/self.dt/len(self.freqs)))
+        if plot_shrinked_spectrum:
+            plt.figure()
+            plt.title('Shrinked spectrum')
+            plt.plot(self.freqs,signal_shrinked)
+            plt.plot(self.freqs[mode_indexes],signal_shrinked[mode_indexes],'o')
         for mode_number,p in enumerate(mode_indexes):
             self.modes.append(Mode(p,self.freqs[p]))
-            if self.fig_spec is not None and indicate_modes_on_spectrogram:
-                self.fig_spec.axes[0].axhline(self.freqs[p],color='yellow',linewidth=2)
             signal=self.spec[p,:]
             peak=np.nanargmax(signal)
             # peaks,_=scipy.signal.find_peaks(signal, height=3*bn.nanstd(signal),width=average_factor_for_times,prominence=3*np.nanstd(signal))
@@ -324,6 +327,14 @@ class Spectrogram():
             self.modes[mode_number].birth_time=self.times[int(left_ips[0])]
             self.modes[mode_number].death_time=self.times[int(right_ips[0])]
             self.modes[mode_number].life_time=self.modes[mode_number].death_time-self.modes[mode_number].birth_time
+            
+        if self.fig_spec is not None and indicate_modes_on_spectrogram:
+            extraticks=[x.freq for x in self.modes]
+            loc=matplotlib.ticker.FixedLocator(extraticks)
+            self.fig_spec.axes[0].yaxis.set_minor_locator(loc)
+            self.fig_spec.axes[0].tick_params(which='minor', length=10, color='r',width=5)
+            # plt.yticks(minor=True)
+            # self.fig_spec.axes[0].axhline(self.freqs,color='yellow',linewidth=2)
             
         self.N_modes=len(self.modes)
         return self.modes
@@ -337,8 +348,11 @@ class Spectrogram():
             plt.axvline(self.modes[i].death_time)
             
     def print_all_modes(self):
-        for i,_ in enumerate(self.modes):
-           print('Mode {}, detuning={:.0f} MHz, life time={:.2f} ms'.format(i,self.modes[i].freq/1e6,self.modes[i].life_time*1e3))
+        if self.N_modes>0:
+            for i,_ in enumerate(self.modes):
+                print('Mode {}, detuning={:.0f} MHz, life time={:.2f} ms'.format(i,self.modes[i].freq/1e6,self.modes[i].life_time*1e3))
+        else:
+            print('No mode found on spectrogram')
 
     
     

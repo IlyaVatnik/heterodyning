@@ -1,4 +1,4 @@
-from Hardware.PyApex.Constantes import *
+from .Constantes import *
 
 class ApexError(Exception):
 

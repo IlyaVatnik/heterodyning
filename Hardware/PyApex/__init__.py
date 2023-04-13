@@ -23,10 +23,10 @@ Python 3 package for controlling Apex Technologies equipments
     "help(PyApex.Etuve)" for more details
 '''
 
-from heterodyning.Hardware.PyApex.AP2XXX import AP2XXX
-from heterodyning.Hardware.PyApex.Console import Terminal
+from .AP2XXX import AP2XXX
+from .Console import Terminal
 
-from Hardware.PyApex.Constantes import Celerity
+from .Constantes import Celerity
 
 __Version = 1.01
 __PythonVersion = 3.4
