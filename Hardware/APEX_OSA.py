@@ -16,9 +16,9 @@ import time
 if __name__=='__main__':
     os.chdir('..')
 
-from Hardware.PyApex.AP2XXX import AP2XXX
-from Hardware.PyApex.AP2XXX.osa import OSA
-from Common.Consts import Consts
+from .PyApex.AP2XXX import AP2XXX
+from .PyApex.AP2XXX.osa import OSA
+from .PyApex.Consts import Consts
 
 
 class APEX_OSA_with_additional_features(OSA,QObject):
@@ -63,7 +63,7 @@ class APEX_OSA_with_additional_features(OSA,QObject):
             try:
                 self.SaveToFile("D:temp", Type="txt")
                 time.sleep(0.2)
-                temp = np.loadtxt('//' + Consts.APEX.HOST + '/D/temp_Spectrum.txt', skiprows=3, dtype=np.float64)
+                temp = np.loadtxt(r'//' + Consts.APEX.NAME + r'/D/temp_Spectrum.txt', skiprows=3, dtype=np.float64)
                 self.spectrum=temp[:,1]
                 self.wavelengtharray=temp[:,0]
             except Exception as e:

@@ -11,8 +11,8 @@ Created on Thu Oct  1 11:37:33 2020
 
 @author: ilyav
 """
-__version__='2.2'
-__date__='2023.03.28'
+__version__='3'
+__date__='2023.04.13'
 
 from matplotlib import pyplot as plt
 from matplotlib.ticker import EngFormatter
@@ -39,6 +39,37 @@ def create_spectrogram_from_data(amplitude_trace,dt,
                                  average_time_window=average_time_window,    
                                  average_freq_window=average_freq_window,
                                  cut_off=True):
+    '''
+    
+
+    Parameters
+    ----------
+    amplitude_trace : TYPE
+        DESCRIPTION.
+    dt : TYPE
+        DESCRIPTION.
+    win_time : TYPE, optional
+        DESCRIPTION. The default is win_time.
+    overlap_time : TYPE, optional
+        DESCRIPTION. The default is overlap_time.
+    IsAveraging : TYPE, optional
+        DESCRIPTION. The default is IsAveraging.
+    average_time_window : TYPE, optional
+        DESCRIPTION. The default is average_time_window.
+    average_freq_window : TYPE, optional
+        DESCRIPTION. The default is average_freq_window.
+    cut_off : TYPE, optional
+        DESCRIPTION. The default is True.
+
+    Returns
+    -------
+    s : Spectrogram
+        Instance of Spectrogram class, Spectral power =|E_nu|**2
+        (not density!)
+        
+        
+
+    '''
                                  
     freqs, times, spec=scipy.signal.spectrogram(
         amplitude_trace,
@@ -49,7 +80,7 @@ def create_spectrogram_from_data(amplitude_trace,dt,
         #detrend=False,
         detrend='constant',
         scaling='spectrum',
-        mode='magnitude')
+        mode='psd')
     
     if IsAveraging:
         average_factor_for_freq=int(average_freq_window/(freqs[1]-freqs[0]))
@@ -98,6 +129,7 @@ class Spectrogram():
         self.ax_spec=None
         
         self.modes=None
+        self.N_modes=None
 
         
         
@@ -113,41 +145,69 @@ class Spectrogram():
         self.needToUpdateSpec=True
     
  
-    def plot_spectrogram(self,font_size=11,title='',vmin=None,vmax=None,cmap='jet',lang='en',formatter='sci'):
+    def plot_spectrogram(self,font_size=11,title='',vmin=None,vmax=None,cmap='jet',lang='en',formatter='sci',scale='log'):
         matplotlib.rcParams.update({'font.size': font_size})
         fig, ax=plt.subplots()
         
         
-
         
-        if formatter=='sci':
-            im=ax.pcolorfast(self.times,self.freqs,self.spec,cmap=cmap,vmin=vmin,vmax=vmax)
-            cbar=plt.colorbar(im)
-            ax.xaxis.set_major_formatter(formatter1)
-            ax.yaxis.set_major_formatter(formatter1)
-            cbar.ax.yaxis.set_major_formatter(formatter1)
-            if lang=='en':
-                plt.ylabel('Frequency detuning, Hz')
-                plt.xlabel('Time, s')
-                cbar.set_label('Intensity, arb.u.')
-            elif lang=='ru':
-                plt.ylabel('Отстройка, Гц')
-                plt.xlabel('Время, сек')
-                cbar.set_label('Интенсивность, отн. ед.')
-        
-        elif formatter=='normal':
-            im=ax.pcolorfast(self.times*1e3,self.freqs/1e6,self.spec*1e3,cmap=cmap,vmin=vmin,vmax=vmax)
-            cbar=plt.colorbar(im)
-            if lang=='en':
-                plt.ylabel('Frequency detuning, MHz')
-                plt.xlabel('Time, ms')
-                cbar.set_label('Intensity, arb.u.')
-            elif lang=='ru':
-                plt.ylabel('Отстройка, МГц')
-                plt.xlabel('Время, мс')
-                cbar.set_label('Интенсивность, отн. ед.')
+        if scale=='lin':
+            if formatter=='sci':
+                im=ax.pcolorfast(self.times,self.freqs,self.spec,cmap=cmap,vmin=vmin,vmax=vmax)
+                cbar=plt.colorbar(im)
+                ax.xaxis.set_major_formatter(formatter1)
+                ax.yaxis.set_major_formatter(formatter1)
+                cbar.ax.yaxis.set_major_formatter(formatter1)
+                if lang=='en':
+                    plt.ylabel('Frequency detuning, Hz')
+                    plt.xlabel('Time, s')
+                    cbar.set_label('Intensity, arb.u.')
+                elif lang=='ru':
+                    plt.ylabel('Отстройка, Гц')
+                    plt.xlabel('Время, сек')
+                    cbar.set_label('Интенсивность, отн. ед.')
             
-        
+            elif formatter=='normal':
+                im=ax.pcolorfast(self.times*1e3,self.freqs/1e6,self.spec*1e3,cmap=cmap,vmin=vmin,vmax=vmax)
+                cbar=plt.colorbar(im)
+                if lang=='en':
+                    plt.ylabel('Frequency detuning, MHz')
+                    plt.xlabel('Time, ms')
+                    cbar.set_label('Intensity, arb.u.')
+                elif lang=='ru':
+                    plt.ylabel('Отстройка, МГц')
+                    plt.xlabel('Время, мс')
+                    cbar.set_label('Интенсивность, отн. ед.')
+                
+        elif scale=='log':
+            if formatter=='sci':
+                im=ax.pcolorfast(self.times,self.freqs,10*np.log10(self.spec),cmap=cmap,vmin=vmin,vmax=vmax)
+                cbar=plt.colorbar(im)
+                ax.xaxis.set_major_formatter(formatter1)
+                ax.yaxis.set_major_formatter(formatter1)
+                cbar.ax.yaxis.set_major_formatter(formatter1)
+                if lang=='en':
+                    plt.ylabel('Frequency detuning, Hz')
+                    plt.xlabel('Time, s')
+                    cbar.set_label('Intensity, dB')
+                elif lang=='ru':
+                    plt.ylabel('Отстройка, Гц')
+                    plt.xlabel('Время, сек')
+                    cbar.set_label('Интенсивность, дБ')
+            
+            elif formatter=='normal':
+                im=ax.pcolorfast(self.times*1e3,self.freqs/1e6,10*np.log10(self.spec),cmap=cmap,vmin=vmin,vmax=vmax)
+                cbar=plt.colorbar(im)
+                if lang=='en':
+                    plt.ylabel('Frequency detuning, MHz')
+                    plt.xlabel('Time, ms')
+                    cbar.set_label('Intensity, dB')
+                elif lang=='ru':
+                    plt.ylabel('Отстройка, МГц')
+                    plt.xlabel('Время, мс')
+                    cbar.set_label('Интенсивность, дБ') 
+
+            
         
             
             
@@ -164,7 +224,33 @@ class Spectrogram():
         return fig,ax
         
     
+    def plot_instant_spectrum(self,time:float,scale='log'):
+        ind=np.argmin(abs(self.times-time))
+        fig=plt.figure()
+        if scale=='lin':
+            plt.plot(self.freqs,self.spec[:,ind])
+            plt.ylabel('Spectral power, arb.u.')
+        elif scale=='log':
+            plt.plot(self.freqs,10*np.log10(self.spec[:,ind]))
+            plt.ylabel('Spectral power, dB')
+        plt.gca().xaxis.set_major_formatter(formatter1)
+        plt.gca().yaxis.set_major_formatter(formatter1)
         
+        plt.xlabel('Frequency detuning, Hz')
+        return fig
+    
+    
+    def remove_osc_spirious_modes(self):
+        '''
+        Remove spirious peaks appearing in the spectrogram at the partial frequensies of the oscilloscope sampling rate
+
+        Returns
+        -------
+        None.
+
+        '''
+        return 
+    
     def cut_off_low_freqs(self,cut_off):
         '''
         cut_off is high pass filter egde frequency in Hz
@@ -174,7 +260,7 @@ class Spectrogram():
         self.spec=self.spec[ind:,:]
         
         
-    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=3,height=2e-4,rel_height=0.97):
+    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=3,height=1e-5,rel_height=0.97):
         self.modes=[]
         signal_shrinked=np.nanmax(self.spec,axis=1)
         mode_indexes,_=scipy.signal.find_peaks(signal_shrinked, height=height,prominence=prominance_factor*bn.nanstd(signal_shrinked))#distance=self.average_freq_window/(1/2/self.dt/len(self.freqs)))
@@ -190,6 +276,7 @@ class Spectrogram():
             self.modes[mode_number].death_time=self.times[int(right_ips[0])]
             self.modes[mode_number].life_time=self.modes[mode_number].death_time-self.modes[mode_number].birth_time
             
+        self.N_modes=len(self.modes)
         return self.modes
     
     
@@ -355,7 +442,7 @@ def get_power_spectrogram(f_name,win_time,overlap_time,channel=3):
                                               noverlap=int(overlap_time/dt),
                                               detrend=False,
                                               scaling='spectrum',
-                                              mode='magnitude')
+                                              mode='psd')
     spec=np.rot90(spec)
     return freq,time,spec
     
@@ -379,7 +466,7 @@ def create_spectrogram_from_file_two_channels_agilent(f_name,
                                                   noverlap=int(overlap_time/dt),
                                                   detrend=False,
                                                   scaling='spectrum',
-                                                  mode='magnitude')
+                                                  mode='psd')
         # spec=np.rot90(spec)
         return freq,time,spec
     
@@ -393,7 +480,7 @@ def create_spectrogram_from_file_two_channels_agilent(f_name,
                                                   noverlap=int(overlap_time/dt),
                                                   detrend=False,
                                                   scaling='spectrum',
-                                                  mode='magnitude')
+                                                  mode='psd')
         # spec=np.rot90(spec)
         return freq,time,spec
     
