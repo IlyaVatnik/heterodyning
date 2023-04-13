@@ -32,6 +32,9 @@ IsAveraging=False
 average_time_window=10e-6    
 average_freq_window=5e6
 
+low_cut_off=200e6
+high_cut_off=200e6
+
 def create_spectrogram_from_data(amplitude_trace,dt,
                                  win_time=win_time,
                                  overlap_time=overlap_time,
@@ -98,7 +101,8 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     
     s=Spectrogram(times,freqs, spec,params)
     if cut_off:
-        s.cut_off_low_freqs(200e6)
+        s.cut_off_low_freqs(low_cut_off)
+        s.cut_off_high_freqs(freqs[-1]-high_cut_off)
     return s
     
 
@@ -145,7 +149,44 @@ class Spectrogram():
         self.needToUpdateSpec=True
     
  
-    def plot_spectrogram(self,font_size=11,title='',vmin=None,vmax=None,cmap='jet',lang='en',formatter='sci',scale='log'):
+    def plot_spectrogram(self,font_size=11,title='',
+                         vmin=None,vmax=None,cmap='jet',lang='en',
+                         formatter='sci',scale='log',
+                         show_colorbar=True):
+        '''
+        
+
+        Parameters
+        ----------
+        font_size : TYPE, optional
+            DESCRIPTION. The default is 11.
+        title : TYPE, optional
+            DESCRIPTION. The default is ''.
+        vmin : TYPE, optional
+            DESCRIPTION. The default is None.
+        vmax : TYPE, optional
+            DESCRIPTION. The default is None.
+        cmap : TYPE, optional
+            DESCRIPTION. The default is 'jet'.
+        lang : TYPE, optional
+            DESCRIPTION. The default is 'en'.
+        formatter : TYPE, optional
+            DESCRIPTION. The default is 'sci'.
+        scale : TYPE, optional
+            DESCRIPTION. The default is 'lin'.
+        show_colorbar : TYPE, optional
+            DESCRIPTION. The default is True.
+
+        Returns
+        -------
+        fig : TYPE
+            DESCRIPTION.
+        ax : TYPE
+            DESCRIPTION.
+
+        '''
+        
+        
         matplotlib.rcParams.update({'font.size': font_size})
         fig, ax=plt.subplots()
         
@@ -154,58 +195,58 @@ class Spectrogram():
         if scale=='lin':
             if formatter=='sci':
                 im=ax.pcolorfast(self.times,self.freqs,self.spec,cmap=cmap,vmin=vmin,vmax=vmax)
-                cbar=plt.colorbar(im)
                 ax.xaxis.set_major_formatter(formatter1)
                 ax.yaxis.set_major_formatter(formatter1)
-                cbar.ax.yaxis.set_major_formatter(formatter1)
                 if lang=='en':
                     plt.ylabel('Frequency detuning, Hz')
                     plt.xlabel('Time, s')
-                    cbar.set_label('Intensity, arb.u.')
                 elif lang=='ru':
                     plt.ylabel('Отстройка, Гц')
                     plt.xlabel('Время, сек')
-                    cbar.set_label('Интенсивность, отн. ед.')
-            
             elif formatter=='normal':
                 im=ax.pcolorfast(self.times*1e3,self.freqs/1e6,self.spec*1e3,cmap=cmap,vmin=vmin,vmax=vmax)
-                cbar=plt.colorbar(im)
                 if lang=='en':
                     plt.ylabel('Frequency detuning, MHz')
                     plt.xlabel('Time, ms')
-                    cbar.set_label('Intensity, arb.u.')
                 elif lang=='ru':
                     plt.ylabel('Отстройка, МГц')
                     plt.xlabel('Время, мс')
+    
+            if show_colorbar:
+                cbar=plt.colorbar(im)
+                cbar.ax.yaxis.set_major_formatter(formatter1)
+                if lang=='ru':
                     cbar.set_label('Интенсивность, отн. ед.')
-                
+                elif lang=='en':
+                    cbar.set_label('Intensity, arb.u.')
+            
         elif scale=='log':
             if formatter=='sci':
                 im=ax.pcolorfast(self.times,self.freqs,10*np.log10(self.spec),cmap=cmap,vmin=vmin,vmax=vmax)
-                cbar=plt.colorbar(im)
                 ax.xaxis.set_major_formatter(formatter1)
                 ax.yaxis.set_major_formatter(formatter1)
-                cbar.ax.yaxis.set_major_formatter(formatter1)
                 if lang=='en':
                     plt.ylabel('Frequency detuning, Hz')
                     plt.xlabel('Time, s')
-                    cbar.set_label('Intensity, dB')
                 elif lang=='ru':
                     plt.ylabel('Отстройка, Гц')
                     plt.xlabel('Время, сек')
-                    cbar.set_label('Интенсивность, дБ')
-            
             elif formatter=='normal':
                 im=ax.pcolorfast(self.times*1e3,self.freqs/1e6,10*np.log10(self.spec),cmap=cmap,vmin=vmin,vmax=vmax)
-                cbar=plt.colorbar(im)
                 if lang=='en':
                     plt.ylabel('Frequency detuning, MHz')
                     plt.xlabel('Time, ms')
-                    cbar.set_label('Intensity, dB')
                 elif lang=='ru':
                     plt.ylabel('Отстройка, МГц')
                     plt.xlabel('Время, мс')
+                    
+                    
+            if show_colorbar:
+                cbar=plt.colorbar(im)
+                if lang=='ru':
                     cbar.set_label('Интенсивность, дБ') 
+                elif lang=='eng':
+                    cbar.set_label('Intensity, dB')
 
             
         
@@ -253,11 +294,19 @@ class Spectrogram():
     
     def cut_off_low_freqs(self,cut_off):
         '''
-        cut_off is high pass filter egde frequency in Hz
+         high pass filter egde frequency in Hz
         '''
         ind=np.argmin(abs(self.freqs-cut_off))
         self.freqs=self.freqs[ind:]
         self.spec=self.spec[ind:,:]
+        
+    def cut_off_high_freqs(self,cut_off):
+        '''
+         low pass filter egde frequency in Hz
+        '''
+        ind=np.argmin(abs(self.freqs-cut_off))
+        self.freqs=self.freqs[:ind]
+        self.spec=self.spec[:ind]
         
         
     def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=3,height=1e-5,rel_height=0.97):
