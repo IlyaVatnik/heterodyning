@@ -7,7 +7,7 @@ formatter1 = EngFormatter()
 
 
 
-def process_life_times_from_file(file,label_size=10,data_in_mks=False):
+def plot_life_time_statistics(file,label_size=10,data_in_mks=False):
     f=Path(file)
     pic_folder=(f.parent.parent/'PICS\\')
     
