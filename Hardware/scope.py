@@ -261,6 +261,12 @@ class Scope:
         self.err_corr()
         self.resource.write_raw(bytes(':AUToscale:VERTical CHANnel{}'.format(ch_num), encoding = 'utf8'))
         
+        
+    def set_channel_offset(self,ch_num,offset):
+        self.err_corr()
+        self.resource.write_raw(bytes(':CHANnel{}:OFFSet '.format(ch_num)+'{}'.format(offset), encoding = 'utf8'))
+        
+        
     def acquire(self, timeout = np.inf, sleep_step = 0.01):
         """
         Acquire trace using current setup.
@@ -326,15 +332,16 @@ class Scope:
 
 if __name__ == '__main__':
     scope = Scope('WINDOWS-E76DLEM')
-    scope.macro_setup(
-            channels_displayed = (1,3),
-            channels_coupling = {1:'DC50', 3:'DC50'},
-            average_count = 0, # if 0 - no average
-            trace_points = 1e9, # if 0 - minimum
-            sampling_rate = 1e9, # if 0 - minimum
-            trigger = 'AUTO',
-            trigger_channel=4,
-            wave_source = 1) # channel number
+    scope.set_channel_offset(1, 0)
+    # scope.macro_setup(
+    #         channels_displayed = (1,3),
+    #         channels_coupling = {1:'DC50', 3:'DC50'},
+    #         average_count = 0, # if 0 - no average
+    #         trace_points = 1e9, # if 0 - minimum
+    #         sampling_rate = 1e9, # if 0 - minimum
+    #         trigger = 'AUTO',
+    #         trigger_channel=4,
+    #         wave_source = 1) # channel number
     # scope.acquire()
     # wave = scope.query_wave_fast()
 

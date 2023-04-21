@@ -68,5 +68,5 @@ spec1.print_all_modes()
 LO.off()
 pump.APCoff()
 #%%
-with open('example_trace.pkl','wb') as f:
+with open('example_trace 1550.35.pkl','wb') as f:
     pickle.dump(trace_1,f)

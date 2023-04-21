@@ -369,6 +369,22 @@ class Spectrogram():
                 else:
                     j += 1
             i += 1
+            
+    def get_modes_freqs(self):
+        '''
+    
+        Returns
+        -------
+        np.array
+            frequensies  of modes found
+
+        '''
+        
+        freqs=[]
+        for m in self.modes:
+            freqs.append(m.freq)
+        return np.array(freqs)
+            
    
     def get_mode_number(self,frequency,resolution=0):
         if resolution==0:
