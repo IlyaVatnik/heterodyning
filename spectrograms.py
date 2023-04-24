@@ -340,6 +340,12 @@ class Spectrogram():
         return self.modes
     
     
+    def get_freqs(self):
+        freqs=[]
+        for m in self.modes:
+            freqs.append(m.freq)
+        return np.array(freqs)
+    
     def plot_all_modes(self):
         for i,_ in enumerate(self.modes):
             self.plot_mode_dynamics(i)
