@@ -20,7 +20,7 @@ __version__='2'
 __date__='2023.03.23'
 
 
-def process_spectra_from_folder(folder,label_size=10,wavelength_min=1549,wavelength_max=1552,indicate_peaks=False, plot_graphs=True,
+def plot_spectra_OSA(folder,label_size=10,wavelength_min=1549,wavelength_max=1552,indicate_peaks=False, plot_graphs=True,
                                 threshold=None,height=None,prominence=10,widths=(0,40)):
     folder+='\\'
     pic_folder=Path(folder).parent/'PICS\\'
@@ -44,7 +44,7 @@ def process_spectra_from_folder(folder,label_size=10,wavelength_min=1549,wavelen
     def dBm2W(x):
         return 10**(x/10)/1000
     
-    
+        
     def W2dBm(x):
         return 10*np.log10(1000*x)
     
@@ -97,9 +97,9 @@ def process_spectra_from_folder(folder,label_size=10,wavelength_min=1549,wavelen
         axis.set_ylim(bottom=min_noise_level)
         axis.set_xlim(((wavelength_min,wavelength_max)))
         
-        # plt.tight_layout()
-        # plt.legend()
-        # plt.show()
+        plt.tight_layout()
+        plt.legend()
+        plt.show()
         plt.savefig(pic_folder.__str__()+'\\Spectra {}.png'.format(folder.split('\\')[-1]))
         
         

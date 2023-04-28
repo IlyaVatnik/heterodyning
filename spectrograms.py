@@ -131,9 +131,10 @@ class Spectrogram():
             
         self.fig_spec=None
         self.ax_spec=None
+        self.fig_format=None
         
         self.modes=None
-        self.N_modes=None
+        self.N_modes=0
 
         
         
@@ -204,7 +205,7 @@ class Spectrogram():
                     plt.ylabel('Отстройка, Гц')
                     plt.xlabel('Время, сек')
             elif formatter=='normal':
-                im=ax.pcolorfast(self.times*1e3,self.freqs/1e6,self.spec*1e3,cmap=cmap,vmin=vmin,vmax=vmax)
+                im=ax.pcolorfast(self.times*1e3,self.freqs/1e6,self.spec/np.max(self.spec),cmap=cmap,vmin=vmin,vmax=vmax)
                 if lang=='en':
                     plt.ylabel('Frequency detuning, MHz')
                     plt.xlabel('Time, ms')
@@ -214,7 +215,8 @@ class Spectrogram():
     
             if show_colorbar:
                 cbar=plt.colorbar(im)
-                cbar.ax.yaxis.set_major_formatter(formatter1)
+                if formatter=='sci':
+                    cbar.ax.yaxis.set_major_formatter(formatter1)
                 if lang=='ru':
                     cbar.set_label('Интенсивность, отн. ед.')
                 elif lang=='en':
@@ -243,6 +245,8 @@ class Spectrogram():
                     
             if show_colorbar:
                 cbar=plt.colorbar(im)
+                if formatter=='sci':
+                    cbar.ax.yaxis.set_major_formatter(formatter1)
                 if lang=='ru':
                     cbar.set_label('Интенсивность, дБ') 
                 elif lang=='eng':
@@ -255,6 +259,7 @@ class Spectrogram():
             
         self.fig_spec=fig
         self.ax_spec=ax
+        self.fig_format=formatter
         
 
             
@@ -329,7 +334,10 @@ class Spectrogram():
             self.modes[mode_number].life_time=self.modes[mode_number].death_time-self.modes[mode_number].birth_time
             
         if self.fig_spec is not None and indicate_modes_on_spectrogram:
-            extraticks=[x.freq for x in self.modes]
+            if self.fig_format=='normal':
+                extraticks=[x.freq/1e6 for x in self.modes]
+            elif self.fig_format=='sci':
+                extraticks=[x.freq for x in self.modes]
             loc=matplotlib.ticker.FixedLocator(extraticks)
             self.fig_spec.axes[0].yaxis.set_minor_locator(loc)
             self.fig_spec.axes[0].tick_params(which='minor', length=10, color='r',width=5)
@@ -532,6 +540,19 @@ def get_power_spectrogram(f_name,win_time,overlap_time,channel=3):
     return freq,time,spec
     
 
+def average_spectrogram(spec:Spectrogram,average_freq_window=None,average_time_window=None):
+    import copy
+    spec_1=copy.copy(spec)
+    if average_freq_window is not None:
+        average_factor_for_freq=int(average_freq_window/(spec_1.freqs[1]-spec_1.freqs[0]))
+        spec_1.spec=bn.move_mean(spec_1.spec,average_factor_for_freq,1,axis=0)
+    if average_time_window is not None:                
+        average_factor_for_times=int(average_time_window/(spec_1.times[1]-spec_1.times[0]))
+        spec_1.spec=bn.move_mean(spec_1.spec,average_factor_for_times,1,axis=1)
+    
+    return spec_1
+    
+
     
 def create_spectrogram_from_file_two_channels_agilent(f_name,
                                                       win_time=3e-6,
@@ -598,7 +619,17 @@ def create_spectrogram_from_file_two_channels_agilent(f_name,
             channels]
     return Spectrogram(time,freq, spec_1,params)
 
-
+def get_mode_ratio(spec1:Spectrogram,spec2:Spectrogram,mode:Mode):
+    t=spec1.times
+    i1=int(np.argwhere(t==mode.birth_time))
+    i2=int(np.argwhere(t==mode.death_time))
+    
+    I1=spec1.spec[mode.ind,:]
+    I2=spec2.spec[mode.ind,:]
+    t,I1,I2=t[i1:i2],I1[i1:i2],I2[i1:i2]
+    Ratio_dependence=I2/I1
+    Ratio,Ratio_error=np.mean(Ratio_dependence),np.std(Ratio_dependence)/np.mean(Ratio_dependence)
+    return Ratio, Ratio_error,t,Ratio_dependence
         
 if __name__=='__main__':
     f=r"D:\Ilya\Second round random laser\SMF-28 32 km\2023.03.16-17 testing different polarizations\At 1550.35\spectrogram_examples\1\Large R 1.spec"
