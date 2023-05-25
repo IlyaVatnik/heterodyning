@@ -77,17 +77,17 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     freqs, times, spec=scipy.signal.spectrogram(
         amplitude_trace,
         1/dt,
-        window='triang',
+        window='hamming',
         nperseg=int(win_time/dt),
         noverlap=int(overlap_time/dt),          
         #detrend=False,
         detrend='constant',
-        scaling='spectrum',
+        scaling='density',
         mode='psd')
     
     if IsAveraging:
-        average_factor_for_freq=int(average_freq_window/(freqs[1]-freqs[0]))
-        average_factor_for_times=int(average_time_window/(times[1]-times[0]))
+        average_factor_for_freq=int(average_freq_window/(freqs[1]-freqs[0])+1)
+        average_factor_for_times=int(average_time_window/(times[1]-times[0])+1)
         # print(average_time_window,times[1],times[0])
         spec=bn.move_mean(spec,average_factor_for_times,1,axis=1)
         spec=bn.move_mean(spec,average_factor_for_freq,1,axis=0)
@@ -107,7 +107,7 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     
 
 class Mode():
-    def __init__(self,ind,freq):
+    def __init__(self,ind,freq,max_intensity=None):
         self.ind=ind
         self.freq=freq
         
@@ -115,6 +115,7 @@ class Mode():
         self.death_time=None
         
         self.life_time=None
+        self.max_intensity=max_intensity
         
 
 
@@ -314,17 +315,18 @@ class Spectrogram():
         self.spec=self.spec[:ind]
         
         
-    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=3,height=0.1e-9,rel_height=0.99,plot_shrinked_spectrum=False):
+    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=3,height=0.1e-9,min_freq_spacing=1e5,rel_height=0.99,plot_shrinked_spectrum=False):
         self.modes=[]
         signal_shrinked=np.nanmax(self.spec,axis=1)
-        mode_indexes,_=scipy.signal.find_peaks(signal_shrinked, height=height,prominence=prominance_factor*bn.nanstd(signal_shrinked))#distance=self.average_freq_window/(1/2/self.dt/len(self.freqs)))
+        dv=self.freqs[1]-self.freqs[0]
+        mode_indexes,_=scipy.signal.find_peaks(signal_shrinked, height=height,distance=int(min_freq_spacing/dv)+1,prominence=prominance_factor*bn.nanstd(signal_shrinked))#distance=self.average_freq_window/(1/2/self.dt/len(self.freqs)))
         if plot_shrinked_spectrum:
             plt.figure()
             plt.title('Shrinked spectrum')
             plt.plot(self.freqs,signal_shrinked)
             plt.plot(self.freqs[mode_indexes],signal_shrinked[mode_indexes],'o')
         for mode_number,p in enumerate(mode_indexes):
-            self.modes.append(Mode(p,self.freqs[p]))
+            self.modes.append(Mode(p,self.freqs[p],max_intensity=signal_shrinked[p]))
             signal=self.spec[p,:]
             peak=np.nanargmax(signal)
             # peaks,_=scipy.signal.find_peaks(signal, height=3*bn.nanstd(signal),width=average_factor_for_times,prominence=3*np.nanstd(signal))
@@ -364,7 +366,7 @@ class Spectrogram():
     def print_all_modes(self):
         if self.N_modes>0:
             for i,_ in enumerate(self.modes):
-                print('Mode {}, detuning={:.0f} MHz, life time={:.2f} ms'.format(i,self.modes[i].freq/1e6,self.modes[i].life_time*1e3))
+                print('Mode {}, detuning={:.0f} MHz, life time={:.2f} ms, max intensity={:.3e}'.format(i,self.modes[i].freq/1e6,self.modes[i].life_time*1e3,self.modes[i].max_intensity))
         else:
             print('No mode found on spectrogram')
 
