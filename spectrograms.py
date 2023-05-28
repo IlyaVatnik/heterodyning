@@ -41,6 +41,7 @@ def create_spectrogram_from_data(amplitude_trace,dt,
                                  IsAveraging=IsAveraging,
                                  average_time_window=average_time_window,    
                                  average_freq_window=average_freq_window,
+                                 window='hamming',
                                  cut_off=True):
     '''
     
@@ -77,7 +78,7 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     freqs, times, spec=scipy.signal.spectrogram(
         amplitude_trace,
         1/dt,
-        window='hamming',
+        window=window,
         nperseg=int(win_time/dt),
         noverlap=int(overlap_time/dt),          
         #detrend=False,
@@ -151,7 +152,7 @@ class Spectrogram():
         self.needToUpdateSpec=True
     
  
-    def plot_spectrogram(self,font_size=11,title='',
+    def plot_spectrogram(self,figsize=(8,6),font_size=11,title='',
                          vmin=None,vmax=None,cmap='jet',lang='en',
                          formatter='sci',scale='lin',
                          show_colorbar=True):
@@ -190,7 +191,7 @@ class Spectrogram():
         
         
         matplotlib.rcParams.update({'font.size': font_size})
-        fig, ax=plt.subplots()
+        fig, ax=plt.subplots(figsize=figsize)
         
         
         
@@ -350,7 +351,7 @@ class Spectrogram():
         return self.modes
     
     
-    def get_freqs(self):
+    def get_mode_freqs(self):
         freqs=[]
         for m in self.modes:
             freqs.append(m.freq)
@@ -416,6 +417,10 @@ class Spectrogram():
         if normed:
             signal=signal/max(signal)
         return self.times,signal
+    
+    def get_dynamics_at_freq(self,freq):
+        freq_index=np.argmin(abs((self.freqs-freq)))
+        return self.spec[freq_index,:]
     
     def plot_mode_dynamics(self,mode_number,NewFigure=True):
         time,signal=self.get_mode_dynamics(mode_number)
