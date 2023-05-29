@@ -24,6 +24,8 @@ import scipy.fft as fft
 import bottleneck as bn
 import pickle
 import heterodyning.agilent_bin_beta as b_reader
+import warnings
+warnings.filterwarnings("error")
 
 
 win_time=1e-6
@@ -32,8 +34,6 @@ IsAveraging=False
 average_time_window=10e-6    
 average_freq_window=5e6
 
-low_cut_off=200e6
-high_cut_off=200e6
 
 def create_spectrogram_from_data(amplitude_trace,dt,
                                  win_time=win_time,
@@ -42,7 +42,10 @@ def create_spectrogram_from_data(amplitude_trace,dt,
                                  average_time_window=average_time_window,    
                                  average_freq_window=average_freq_window,
                                  window='hamming',
-                                 cut_off=True):
+                                 cut_off=True,
+                                 real_power_coeff=0,
+                                 low_cut_off=200e6,
+                                 high_cut_off=10e9):
     '''
     
 
@@ -64,12 +67,16 @@ def create_spectrogram_from_data(amplitude_trace,dt,
         DESCRIPTION. The default is average_freq_window.
     cut_off : TYPE, optional
         DESCRIPTION. The default is True.
+        
+    real_power_coeff: 
 
     Returns
     -------
     s : Spectrogram
-        Instance of Spectrogram class, Spectral power =|E_nu|**2
-        (not density!)
+        Instance of Spectrogram class, Spectral power =|E_nu|**2 
+        
+        
+        
         
         
 
@@ -83,7 +90,8 @@ def create_spectrogram_from_data(amplitude_trace,dt,
         noverlap=int(overlap_time/dt),          
         #detrend=False,
         detrend='constant',
-        scaling='density',
+        # scaling='density',
+        scaling='spectrum',
         mode='psd')
     
     if IsAveraging:
@@ -91,7 +99,7 @@ def create_spectrogram_from_data(amplitude_trace,dt,
         average_factor_for_times=int(average_time_window/(times[1]-times[0])+1)
         # print(average_time_window,times[1],times[0])
         spec=bn.move_mean(spec,average_factor_for_times,1,axis=1)
-        spec=bn.move_mean(spec,average_factor_for_freq,1,axis=0)
+        spec=bn.move_sum(spec,average_factor_for_freq,1,axis=0)
     
     params=[win_time,
             overlap_time,
@@ -103,12 +111,15 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     s=Spectrogram(times,freqs, spec,params)
     if cut_off:
         s.cut_off_low_freqs(low_cut_off)
-        s.cut_off_high_freqs(freqs[-1]-high_cut_off)
+        s.cut_off_high_freqs(high_cut_off)
+    if real_power_coeff!=0:
+        s.spec*=real_power_coeff
+        s.real_power_mode=True
     return s
     
 
 class Mode():
-    def __init__(self,ind,freq,max_intensity=None):
+    def __init__(self,ind,freq,power=None):
         self.ind=ind
         self.freq=freq
         
@@ -116,7 +127,7 @@ class Mode():
         self.death_time=None
         
         self.life_time=None
-        self.max_intensity=max_intensity
+        self.max_power=power
         
 
 
@@ -127,6 +138,8 @@ class Spectrogram():
         self.freqs=freqs
         self.times=times
         self.spec=spec
+        
+        self.real_power_mode=False
         
         self.params=params
         
@@ -220,9 +233,15 @@ class Spectrogram():
                 if formatter=='sci':
                     cbar.ax.yaxis.set_major_formatter(formatter1)
                 if lang=='ru':
-                    cbar.set_label('Интенсивность, отн. ед.')
+                    if self.real_power_mode:
+                        cbar.set_label('Спектральная мощностm, мВт')
+                    else:
+                        cbar.set_label('Интенсивность, отн. ед.')
                 elif lang=='en':
-                    cbar.set_label('Intensity, arb.u.')
+                    if self.real_power_mode:
+                        cbar.set_label('Spectral power, mW')
+                    else:
+                        cbar.set_label('Intensity, arb.u.')
             
         elif scale=='log':
             if formatter=='sci':
@@ -250,9 +269,15 @@ class Spectrogram():
                 if formatter=='sci':
                     cbar.ax.yaxis.set_major_formatter(formatter1)
                 if lang=='ru':
-                    cbar.set_label('Интенсивность, дБ') 
+                    if self.real_power_mode:
+                        cbar.set_label('Интенсивность, дБм') 
+                    else:
+                        cbar.set_label('Интенсивность, дБ') 
                 elif lang=='eng':
-                    cbar.set_label('Intensity, dB')
+                    if self.real_power_mode:
+                        cbar.set_label('Intensity, dBm')
+                    else:
+                        cbar.set_label('Intensity, dB')
 
             
         
@@ -316,7 +341,7 @@ class Spectrogram():
         self.spec=self.spec[:ind]
         
         
-    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=3,height=0.1e-9,min_freq_spacing=1e5,rel_height=0.99,plot_shrinked_spectrum=False):
+    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=4,height=None,min_freq_spacing=1e5,rel_height=0.99,plot_shrinked_spectrum=False):
         self.modes=[]
         signal_shrinked=np.nanmax(self.spec,axis=1)
         dv=self.freqs[1]-self.freqs[0]
@@ -327,13 +352,18 @@ class Spectrogram():
             plt.plot(self.freqs,signal_shrinked)
             plt.plot(self.freqs[mode_indexes],signal_shrinked[mode_indexes],'o')
         for mode_number,p in enumerate(mode_indexes):
-            self.modes.append(Mode(p,self.freqs[p],max_intensity=signal_shrinked[p]))
+            power=signal_shrinked[p]
+            self.modes.append(Mode(p,self.freqs[p],power=power))
             signal=self.spec[p,:]
             peak=np.nanargmax(signal)
             # peaks,_=scipy.signal.find_peaks(signal, height=3*bn.nanstd(signal),width=average_factor_for_times,prominence=3*np.nanstd(signal))
-            widths,width_heights,left_ips, right_ips=scipy.signal.peak_widths(signal,[peak],rel_height=rel_height)
-            self.modes[mode_number].birth_time=self.times[int(left_ips[0])]
-            self.modes[mode_number].death_time=self.times[int(right_ips[0])]
+            try:
+                widths,width_heights,left_ips, right_ips=scipy.signal.peak_widths(signal,[peak],rel_height=rel_height)
+                self.modes[mode_number].birth_time=self.times[int(left_ips[0])]
+                self.modes[mode_number].death_time=self.times[int(right_ips[0])]
+            except RuntimeWarning:
+                self.modes[mode_number].birth_time=self.times[0]
+                self.modes[mode_number].death_time=self.times[-1]
             self.modes[mode_number].life_time=self.modes[mode_number].death_time-self.modes[mode_number].birth_time
             
         if self.fig_spec is not None and indicate_modes_on_spectrogram:
@@ -348,6 +378,7 @@ class Spectrogram():
             # self.fig_spec.axes[0].axhline(self.freqs,color='yellow',linewidth=2)
             
         self.N_modes=len(self.modes)
+        self.modes.sort(key=lambda x:-x.max_power)
         return self.modes
     
     
@@ -367,7 +398,10 @@ class Spectrogram():
     def print_all_modes(self):
         if self.N_modes>0:
             for i,_ in enumerate(self.modes):
-                print('Mode {}, detuning={:.0f} MHz, life time={:.2f} ms, max intensity={:.3e}'.format(i,self.modes[i].freq/1e6,self.modes[i].life_time*1e3,self.modes[i].max_intensity))
+                if self.real_power_mode:
+                    print('Mode {}, detuning={:.0f} MHz, life time={:.2f} ms, max power={:.3e} mW'.format(i,self.modes[i].freq/1e6,self.modes[i].life_time*1e3,self.modes[i].max_power))
+                else:
+                    print('Mode {}, detuning={:.0f} MHz, life time={:.2f} ms, max power={:.3e} arb.u.'.format(i,self.modes[i].freq/1e6,self.modes[i].life_time*1e3,self.modes[i].max_power))
         else:
             print('No mode found on spectrogram')
 
@@ -401,6 +435,9 @@ class Spectrogram():
         for m in self.modes:
             freqs.append(m.freq)
         return np.array(freqs)
+    
+    def _get_freq_index(self, freq):
+        return np.argmin(abs(self.freqs-freq))
             
    
     def get_mode_number(self,frequency,resolution=0):
