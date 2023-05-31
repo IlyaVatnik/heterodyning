@@ -13,7 +13,8 @@ trigger_channel=4
 scope.macro_setup(channels_displayed=(1,2,4),
                  trace_points=0.2e6,
                  sampling_rate=10e9,
-                 trigger='Trig',
+                 trigger='AUTO',
+                 bandwidth='2E9',
                  trigger_channel=trigger_channel)
 
 
@@ -54,21 +55,21 @@ trace_2=scope.get_data(2)
 
 
 
-win_time=3e-6
+win_time=10e-6
 # IsAveraging=False
 IsAveraging=True
 average_freq_window=10e6
 average_time_window=10e-6
 
 
-real_power_ch1=2*2.3e-3/1.358e-05
-real_power_ch2=2*0.336e-3/1.010e-05
+real_power_ch1=160*2*1e-3
+real_power_ch2=2*21*1e-3
 
 
 spec1=create_spectrogram_from_data(trace_1.data,trace_1.xinc,IsAveraging=IsAveraging,win_time=win_time,average_freq_window=average_freq_window,average_time_window=average_time_window,
-                                   real_power_coeff=real_power_ch1)
+                                   real_power_coeff=real_power_ch1,high_cut_off=2e9)
 spec2=create_spectrogram_from_data(trace_2.data,trace_1.xinc,IsAveraging=IsAveraging,win_time=win_time,average_freq_window=average_freq_window,average_time_window=average_time_window,
-                                   real_power_coeff=real_power_ch2)
+                                   real_power_coeff=real_power_ch2,high_cut_off=2e9)
 
                                   
 if plot_everything:
@@ -77,9 +78,9 @@ if plot_everything:
 
 
 mode_index=0
-spec1.find_modes(indicate_modes_on_spectrogram=plot_everything,prominance_factor=10,height=1e-15,min_freq_spacing=2e6,plot_shrinked_spectrum=plot_everything)
+spec1.find_modes(indicate_modes_on_spectrogram=plot_everything,prominance_factor=5,height=1e-15,min_freq_spacing=2e6,plot_shrinked_spectrum=plot_everything)
 # spec1.find_modes(indicate_modes_on_spectrogram=plot_everything,prominance_factor=10,height=1e-15,min_freq_spacing=2e6,plot_shrinked_spectrum=True)
-spec2.find_modes(indicate_modes_on_spectrogram=plot_everything,prominance_factor=10,height=1e-15,min_freq_spacing=2e6,plot_shrinked_spectrum=plot_everything)
+spec2.find_modes(indicate_modes_on_spectrogram=plot_everything,prominance_factor=5,height=1e-15,min_freq_spacing=2e6,plot_shrinked_spectrum=plot_everything)
 
 all_modes_list=[]
 if len(spec1.modes)>0 and len(spec2.modes)>0:
@@ -101,12 +102,12 @@ print('\n')
 spec2.print_all_modes()
 print('\n')
 for i,mode in enumerate(all_modes_list):
-    print('Mode {}, detuning={:.0f} MHz, life time={:.2f} ms, max power={:.3e} mW\n'.format(i,mode.freq/1e6,mode.life_time*1e3,mode.max_power))
+    print('Mode {}, detuning={:.0f} MHz, life time={:.2f} ms, max power={:.3e} W\n'.format(i,mode.freq/1e6,mode.life_time*1e3,mode.max_power))
     
 if len(all_modes_list)>0:
     all_modes_list.sort(key=lambda x:-x.max_power)
     for m in all_modes_list:
-        Ratio1, Ratio_error1,_,_=get_mode_ratio(spec1,spec2,m)
+        power,Ratio1, Ratio_error1,_,_=get_mode_ratio(spec1,spec2,m)
         phi1=np.arctan(np.sqrt(Ratio1))
     # Ratio2, Ratio_error2,_,_=get_mode_ratio(spec1,spec2,mode2)
     # Ratio=Ratio1/Ratio2
@@ -117,9 +118,13 @@ if len(all_modes_list)>0:
 #%%
 LO.off()
 pump.APCoff()
-LO2.off()
+
 #%%
-with open('example_trace 1 1550.35.pkl','wb') as f:
+with open('example_trace 1 {}.pkl'.format(wavelength),'wb') as f:
     pickle.dump(trace_1,f)
-with open('example_trace 2 1550.35.pkl','wb') as f:
-        pickle.dump(trace_2,f)
+with open('example_trace 2 {}.35.pkl'.format(wavelength),'wb') as f:
+    pickle.dump(trace_2,f)
+    
+#%%
+spec1.save_to_file('example ch1 real power.spec',as_object=False)
+spec2.save_to_file('example ch2 real power.spec',as_object=False)

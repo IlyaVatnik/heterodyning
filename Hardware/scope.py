@@ -180,6 +180,7 @@ class Scope:
             sampling_rate = 0, # if 0 - minimum
             trigger = 'AUTO',
             trigger_channel=1,
+            bandwidth='MAX', # AUTO, MAX, 4E09, 3.5E09, 3E09, 2.5E09, 2E09, 1.5E09, 1E09, 5E08
             wave_byteorder = 'MSBF',
             wave_format = 'WORD', 
             wave_source = 1, # channel number
@@ -240,6 +241,9 @@ class Scope:
 
         
         self.resource.write_raw(bytes(':TRIGger:EDGE:SOURce CHANnel{}'.format(trigger_channel), encoding = 'utf8'))
+        # stdout.write(str(self.query_string('TRIGger:AND:SOURce? CHANnel')+b'\n'))
+        
+        self.resource.write_raw(bytes(':ACQuire:BANDwidth {}'.format(bandwidth), encoding = 'utf8'))
         # stdout.write(str(self.query_string('TRIGger:AND:SOURce? CHANnel')+b'\n'))
         
         self.resource.write_raw(bytes(':WAVeform:FORMat ' + wave_format, encoding = 'utf8'))

@@ -69,7 +69,8 @@ def create_spectrogram_from_data(amplitude_trace,dt,
         DESCRIPTION. The default is True.
         
     real_power_coeff: 
-
+        if not zero, then spec is power in W !!!!!!
+        
     Returns
     -------
     s : Spectrogram
@@ -81,7 +82,8 @@ def create_spectrogram_from_data(amplitude_trace,dt,
         
 
     '''
-                                 
+    if win_time==0:
+        win_time=dt*len(amplitude_trace)
     freqs, times, spec=scipy.signal.spectrogram(
         amplitude_trace,
         1/dt,
@@ -220,7 +222,7 @@ class Spectrogram():
                     plt.ylabel('Отстройка, Гц')
                     plt.xlabel('Время, сек')
             elif formatter=='normal':
-                im=ax.pcolorfast(self.times*1e3,self.freqs/1e6,self.spec/np.max(self.spec),cmap=cmap,vmin=vmin,vmax=vmax)
+                im=ax.pcolorfast(self.times*1e3,self.freqs/1e6,self.spec,cmap=cmap,vmin=vmin,vmax=vmax)
                 if lang=='en':
                     plt.ylabel('Frequency detuning, MHz')
                     plt.xlabel('Time, ms')
@@ -234,18 +236,18 @@ class Spectrogram():
                     cbar.ax.yaxis.set_major_formatter(formatter1)
                 if lang=='ru':
                     if self.real_power_mode:
-                        cbar.set_label('Спектральная мощностm, мВт')
+                        cbar.set_label('Спектральная мощностm, Вт')
                     else:
                         cbar.set_label('Интенсивность, отн. ед.')
                 elif lang=='en':
                     if self.real_power_mode:
-                        cbar.set_label('Spectral power, mW')
+                        cbar.set_label('Spectral power, W')
                     else:
                         cbar.set_label('Intensity, arb.u.')
             
         elif scale=='log':
             if formatter=='sci':
-                im=ax.pcolorfast(self.times,self.freqs,10*np.log10(self.spec),cmap=cmap,vmin=vmin,vmax=vmax)
+                im=ax.pcolorfast(self.times,self.freqs,10*np.log10(self.spec/1e-3),cmap=cmap,vmin=vmin,vmax=vmax)
                 ax.xaxis.set_major_formatter(formatter1)
                 ax.yaxis.set_major_formatter(formatter1)
                 if lang=='en':
@@ -255,7 +257,7 @@ class Spectrogram():
                     plt.ylabel('Отстройка, Гц')
                     plt.xlabel('Время, сек')
             elif formatter=='normal':
-                im=ax.pcolorfast(self.times*1e3,self.freqs/1e6,10*np.log10(self.spec),cmap=cmap,vmin=vmin,vmax=vmax)
+                im=ax.pcolorfast(self.times*1e3,self.freqs/1e6,10*np.log10(self.spec/1e-3),cmap=cmap,vmin=vmin,vmax=vmax)
                 if lang=='en':
                     plt.ylabel('Frequency detuning, MHz')
                     plt.xlabel('Time, ms')
@@ -304,7 +306,7 @@ class Spectrogram():
             plt.plot(self.freqs,self.spec[:,ind])
             plt.ylabel('Spectral power, arb.u.')
         elif scale=='log':
-            plt.plot(self.freqs,10*np.log10(self.spec[:,ind]))
+            plt.plot(self.freqs,10*np.log10(self.spec[:,ind]/1e-3))
             plt.ylabel('Spectral power, dB')
         plt.gca().xaxis.set_major_formatter(formatter1)
         plt.gca().yaxis.set_major_formatter(formatter1)
@@ -399,7 +401,7 @@ class Spectrogram():
         if self.N_modes>0:
             for i,_ in enumerate(self.modes):
                 if self.real_power_mode:
-                    print('Mode {}, detuning={:.0f} MHz, life time={:.2f} ms, max power={:.3e} mW'.format(i,self.modes[i].freq/1e6,self.modes[i].life_time*1e3,self.modes[i].max_power))
+                    print('Mode {}, detuning={:.0f} MHz, life time={:.2f} ms, max power={:.3e} W'.format(i,self.modes[i].freq/1e6,self.modes[i].life_time*1e3,self.modes[i].max_power))
                 else:
                     print('Mode {}, detuning={:.0f} MHz, life time={:.2f} ms, max power={:.3e} arb.u.'.format(i,self.modes[i].freq/1e6,self.modes[i].life_time*1e3,self.modes[i].max_power))
         else:
@@ -467,7 +469,7 @@ class Spectrogram():
         plt.gca().xaxis.set_major_formatter(formatter1)
         plt.gca().yaxis.set_major_formatter(formatter1)
         plt.xlabel('Time, s')      
-        plt.ylabel('Intensity, arb.u.')
+        plt.ylabel('Intensity, W')
         plt.title('Mode at {:.1f} MHz detuning'.format(self.modes[mode_number].freq/1e6))
         plt.tight_layout()
         return fig, plt.gca()
@@ -673,7 +675,7 @@ def get_mode_ratio(spec1:Spectrogram,spec2:Spectrogram,mode:Mode):
     t,I1,I2=t[i1:i2],I1[i1:i2],I2[i1:i2]
     Ratio_dependence=I2/I1
     Ratio,Ratio_error=np.mean(Ratio_dependence),np.std(Ratio_dependence)/np.mean(Ratio_dependence)
-    return Ratio, Ratio_error,t,Ratio_dependence
+    return (I1+I2),Ratio, Ratio_error,t,Ratio_dependence
         
 if __name__=='__main__':
     f=r"D:\Ilya\Second round random laser\SMF-28 32 km\2023.03.16-17 testing different polarizations\At 1550.35\spectrogram_examples\1\Large R 1.spec"
