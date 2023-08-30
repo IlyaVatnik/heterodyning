@@ -5,11 +5,11 @@ import time
 import pickle
 
 
-__date__='2023.04.07'
+__date__='2023.08.29'
 
-folder='data\\'
-type_of_meas='single'
-# type_of_meas='hold'
+folder='hold data in forward direction\\'
+# type_of_meas='single'
+type_of_meas='hold'
 
 
 # folder='data 100 max_hold sens Normal\\'
@@ -18,19 +18,19 @@ type_of_meas='single'
 P_thresh=322
 minimum_output_power=-0.001 #  W
 
-pump_min=290
-pump_max=305
+pump_min=324
+pump_max=349
 pump_step=1
 
 
 
-N_averaged=30
-N_repeat=1
+N_averaged=1
+N_repeat=40
 
 osa = yokogawa.Yokogawa(timeout=1e7)
 osa.set_average_count(N_averaged)
 osa.set_sensitivity('Normal')
-osa.set_span(1546,1556)
+osa.set_span(1550,1580)
 
 PM=ThorlabsPM100.PowerMeter()
 
@@ -40,9 +40,11 @@ if type_of_meas=='hold':
     osa.acquire()
     time2=time.time()
     time_measured=time2-time1
-    osa.set_trace_mode('A','MAX')
+    osa.set_trace_mode('A','MAX') 
     osa.set_measurement_mode('REPEAT')
 else:
+    osa.set_measurement_mode('SINGLE')
+    osa.set_trace_mode('A','WRITE')
     time_measured=0
         
 

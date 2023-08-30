@@ -15,8 +15,8 @@ from sys import stdout
 
 #'WINDOWS-E76DLEM'
 
-__version__='1'
-__date__='2023.03.24'
+__version__='2'
+__date__='2023.08.29'
 
 class Wave:
     def __init__(self, datA, xinC):
@@ -37,6 +37,7 @@ class Scope:
         
         self.set_wfm_mode('RAW') #for all data in memory
         self.set_wfm_format('BYTE')
+        self.trigger='AUTO'
     """      
     def err_code(self):
         self.resource.write_raw(b':SYSTem:ERRor?')
@@ -46,6 +47,37 @@ class Scope:
         else:
             return int(resp)
     """   
+    
+    
+    def macro_setup(self,
+            channels_displayed = (1,),
+            channels_coupling = {1:'DC50'},
+            channels_impedances={1:'FIFTy'},
+            trace_points = 0, # if 0 - minimum,
+            trigger='AUTO'
+            ):
+        """
+        Needs to be  later
+        """
+        
+        self.trigger=trigger
+        
+        remaining = {1,2,3,4}
+        for number in channels_displayed:
+            remaining -= set((number,))
+            self.set_channel_on(number)
+        for number in remaining:
+              self.set_channel_off(number)
+            
+        for key in channels_coupling.keys():
+            self.set_channel_coupling(key,channels_coupling[key])
+            
+        for key in channels_impedances.keys():
+            self.set_channel_impedance(key,channels_impedances[key])
+        
+    
+        self.set_memory_depth(trace_points)
+        
     
     def clear(self):
         """
@@ -81,12 +113,23 @@ class Scope:
         preamble = self.resource.read_raw()
         (wav_form, acq_type, wfmpts, avgcnt, x_increment, x_origin,
          x_reference, y_increment, y_origin, y_reference) = preamble.split(b",")
+        # print(preamble)
         self.resource.write_raw(b"WAVeform:STARt 1")
         self.resource.write_raw(bytes("WAVeform:STOP {}".format(int(wfmpts)), encoding = 'utf8'))
         origins = np.array(list(map(float,(x_increment, x_origin, y_increment, y_origin))), dtype = 'f')
+        
+        
+        # print(origins,int(y_reference))
         self.resource.write_raw(b':WAVeform:DATA?')
         raw = self.resource.read_raw()[11:-1]
-        wave = ((np.frombuffer(raw, dtype = np.uint8)).astype(np.int16) - int(y_reference)) * origins[2] + origins[3]
+        raw=(np.frombuffer(raw, dtype = np.uint8)).astype(np.int16)
+        # print(raw)
+        # plt.figure()
+        # plt.plot((np.frombuffer(raw, dtype = np.uint16)).astype(np.int16))
+        
+        # wave = ((np.frombuffer(raw, dtype = np.uint8)).astype(np.int16) - int(y_reference)) * origins[2] + origins[3]
+        wave = (raw - int(y_origin)-int(y_reference)) * origins[2]
+        print('Got signal with length of {}'.format(len(wave)))
         return Wave(wave,origins[0])
     
     """
@@ -204,7 +247,10 @@ class Scope:
         Default timeout is infinite, every ~5 sec a message is written to stdout
         """
         #self.err_corr()
-        self.resource.write_raw(b':SINGle')
+        if self.trigger=='AUTO':
+            self.resource.write_raw(b':AUTO')
+        elif self.trigger=='SINGLe':
+            self.resource.write_raw(b':SINGLe')
         i = 0
         t0 = time.time()
         while time.time() - t0 < timeout:
@@ -235,30 +281,31 @@ class Scope:
                 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    ch = 1
-    scope = Scope('10.2.60.117')
-#%%
-    """
-    averaging needs to be turned on\off manually
-    """
+    ch = 2
+    scope = Scope('10.2.60.160')
+    print('try something')
+    # '''
+    # averaging needs to be turned on\off manually
+    # '''
+
     scope.set_wfm_mode('RAW') #for all data in memory
     print(scope.get_wfm_mode())
     scope.set_wfm_format('BYTE')
     print(scope.get_wfm_format())#currently only format supported for downloading
     #anyway 8 bit only
-#%%
-    scope.set_channel_on(ch)
-    scope.set_channel_coupling(ch, 'DC') # 'DC' ot 'AC'
-    print(scope.get_channel_coupling(ch))
-    scope.set_channel_impedance(ch, 'OMEG') # 'FIFTy' for 50 'OMEG' for 1M
-    print(scope.get_channel_impedance(ch))
-    scope.set_wfm_source(ch)
-    print(scope.get_wfm_source())
-    scope.set_memory_depth(2000000)
-    print(scope.get_memory_depth())
-#%%
-    scope.acquire()
-    wave = scope.query_wave_fast()
+
+    # scope.set_channel_on(ch)
+    # scope.set_channel_coupling(ch, 'DC') # 'DC' ot 'AC'
+    # print(scope.get_channel_coupling(ch))
+    # scope.set_channel_impedance(ch, 'OMEG') # 'FIFTy' for 50 'OMEG' for 1M
+    # print(scope.get_channel_impedance(ch))
+    # scope.set_wfm_source(ch)
+    # print(scope.get_wfm_source())
+    # scope.set_memory_depth(2000000)
+    # print(scope.get_memory_depth())
+
+    wave=scope.acquire_and_return(1)
+    
     plt.plot(wave.data)
 
 

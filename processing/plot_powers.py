@@ -29,5 +29,5 @@ def plot_powers(file):
     
     
 if __name__=="__main__":
-    file='powers.pkl'
+    file='Powers measured at backward.pkl'
     plot_powers(file)

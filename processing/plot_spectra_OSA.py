@@ -20,8 +20,8 @@ __version__='2'
 __date__='2023.03.23'
 
 
-def plot_spectra_OSA(folder,label_size=10,wavelength_min=1549,wavelength_max=1552,indicate_peaks=False, plot_graphs=True,
-                                threshold=None,height=None,prominence=10,widths=(0,40)):
+def plot_spectra_OSA(folder,label_size=10,wavelength_min=1520,wavelength_max=1580,indicate_peaks=False, plot_graphs=True,
+                                threshold=None,height=None,prominence=20,widths=(0,40)):
     folder+='\\'
     pic_folder=Path(folder).parent/'PICS\\'
     f_list=os.listdir(folder)
@@ -123,5 +123,6 @@ def plot_spectra_OSA(folder,label_size=10,wavelength_min=1549,wavelength_max=155
     return pump_array,gen_power_array,Pumps_with_modes
 
 if __name__=='__main__':
-    folder=r"D:\Ilya\Second round random laser\SMF-28 32 km\2023.04.13 Life_times with pump attenuators\86%\data"
-    process_spectra_from_folder(folder)
+    # folder=r"D:\Ilya\Second round random laser\SMF-28 32 km\2023.08 No FBG\2023.08.29 spectra\data in forward direction"
+    folder=r"D:\Ilya\Second round random laser\SMF-28 32 km\2023.08 No FBG\2023.08.29 spectra\hold data in forward direction"
+    plot_spectra_OSA(folder)
