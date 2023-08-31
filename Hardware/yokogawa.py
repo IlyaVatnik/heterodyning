@@ -98,7 +98,7 @@ if __name__ == '__main__':
     osa.clear_trace()
     osa.abort()
     
-    # del osa
+    del osa
     
 
 

@@ -53,6 +53,7 @@ class Scope:
             channels_displayed = (1,),
             channels_coupling = {1:'DC50'},
             channels_impedances={1:'FIFTy'},
+            acq_time=1e-9,
             trace_points = 0, # if 0 - minimum,
             trigger='AUTO'
             ):
@@ -77,6 +78,8 @@ class Scope:
         
     
         self.set_memory_depth(trace_points)
+        self.set_timescale(acq_time/10)
+        print('Sampling rate is {}'.format(self.get_sampling_rate()))
         
     
     def clear(self):
@@ -170,6 +173,8 @@ class Scope:
     def get_wfm_format(self):
         return self.query_string(':WAVeform:FORMat?')
     
+    def set_channel_offset(self,ch_num,offset):
+    
     def set_memory_depth(self, depth = 'AUTO'):
         if depth == 'AUTO':
             self.resource.write_raw(bytes(':ACQuire:MDEPth {}'.format(depth), encoding = 'utf8'))
@@ -207,8 +212,22 @@ class Scope:
     def set_channel_on(self, channel = 1):
         self.resource.write_raw(bytes(':CHANnel{}:DISPlay 1'.format(channel), encoding = 'utf8'))
         
+        
+    
+        
     def set_channel_off(self, channel = 1):
         self.resource.write_raw(bytes(':CHANnel{}:DISPlay 0'.format(channel), encoding = 'utf8'))
+        
+        
+    def set_timescale(self,time_scale):
+        self.resource.write_raw(bytes(':TIMebase:MAIN:SCALe {}'.format(time_scale), encoding = 'utf8'))
+        
+        
+    def get_timescale(self):
+        return  self.query_string(':TIMebase:MAIN:SCALe?')
+    
+    def get_sampling_rate(self):
+        return  self.query_string(':ACQuire:SRATe?')
         
     def set_channel_coupling(self, channel = 1, coupling = 'DC'):
         #DC
