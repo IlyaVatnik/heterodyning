@@ -174,6 +174,7 @@ class Scope:
         return self.query_string(':WAVeform:FORMat?')
     
     def set_channel_offset(self,ch_num,offset):
+        self.resource.write_raw(bytes(':CHANnel{}:OFFSet '.format(ch_num)+'{}'.format(offset), encoding = 'utf8'))
     
     def set_memory_depth(self, depth = 'AUTO'):
         if depth == 'AUTO':
