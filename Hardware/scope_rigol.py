@@ -38,7 +38,7 @@ class Scope:
         self.set_wfm_mode('RAW') #for all data in memory
         self.set_wfm_format('BYTE')
         self.trigger='AUTO'
-    """      
+          
     def err_code(self):
         self.resource.write_raw(b':SYSTem:ERRor?')
         resp = self.resource.read_raw()[:-1]
@@ -46,7 +46,7 @@ class Scope:
             return int(resp[10:])
         else:
             return int(resp)
-    """   
+       
     
     
     def macro_setup(self,
@@ -164,6 +164,13 @@ class Scope:
     def set_wfm_mode(self, mode = 'RAW'):
         self.resource.write_raw(bytes(':WAVeform:MODE {}'.format(mode), encoding = 'utf8'))
     
+    def get_trigger_high_level(self):
+        return float(self.query_string(':TRIGger:SLOPe:ALEVel?'))
+    
+    def set_trigger_high_level(self,level):
+        self.resource.write_raw(bytes(':TRIGger:SLOPe:ALEVel {}'.format(level), encoding = 'utf8'))
+
+    
     def get_wfm_mode(self):
         return self.query_string(':WAVeform:MODE?')
     
@@ -173,8 +180,15 @@ class Scope:
     def get_wfm_format(self):
         return self.query_string(':WAVeform:FORMat?')
     
+    def set_channel_scale(self,ch_num,scale):
+        self.resource.write_raw(bytes(':CHANnel{}:SCALe '.format(ch_num)+'{}'.format(scale), encoding = 'utf8'))
+ 
+    
     def set_channel_offset(self,ch_num,offset):
         self.resource.write_raw(bytes(':CHANnel{}:OFFSet '.format(ch_num)+'{}'.format(offset), encoding = 'utf8'))
+    
+    def get_channel_offset(self,ch_num):
+        return float(self.query_string(':CHANnel{}:OFFSet?'.format(ch_num)))
     
     def set_memory_depth(self, depth = 'AUTO'):
         if depth == 'AUTO':
@@ -267,12 +281,16 @@ class Scope:
         Default timeout is infinite, every ~5 sec a message is written to stdout
         """
         #self.err_corr()
+        # self.clear()
         if self.trigger=='AUTO':
-            self.resource.write_raw(b':AUTO')
+            self.resource.write_raw(b':TRIGger:SWEep AUTO')
+            self.resource.write_raw(b':RUN')
         elif self.trigger=='SINGLe':
             self.resource.write_raw(b':SINGLe')
         i = 0
         t0 = time.time()
+        # int(self.query_string('*OPC?'))
+        time.sleep(sleep_step)
         while time.time() - t0 < timeout:
             if int(self.query_string('*OPC?')):
                 stdout.write('Acquisition complete\n')
@@ -289,7 +307,7 @@ class Scope:
             raise RuntimeError('Acquisition timeout')
     
     def acquire_and_return(self,ch_num):
-        self.acquire(sleep_step=2)
+        self.acquire(sleep_step=0.1)
         self.set_wfm_source(ch_num)
         return self.query_wave_fast()
         
@@ -298,20 +316,17 @@ class Scope:
         return self.query_wave_fast()
     
     
-                
+                #%%
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     ch = 2
-    scope = Scope('10.2.60.160')
+    scope = Scope('10.2.60.173')
     print('try something')
     # '''
     # averaging needs to be turned on\off manually
     # '''
 
-    scope.set_wfm_mode('RAW') #for all data in memory
-    print(scope.get_wfm_mode())
-    scope.set_wfm_format('BYTE')
-    print(scope.get_wfm_format())#currently only format supported for downloading
+    scope.trigger='AUTO'
     #anyway 8 bit only
 
     # scope.set_channel_on(ch)
@@ -325,7 +340,6 @@ if __name__ == '__main__':
     # print(scope.get_memory_depth())
 
     wave=scope.acquire_and_return(1)
-    
     plt.plot(wave.data)
 
 
