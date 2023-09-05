@@ -79,7 +79,10 @@ class Scope:
     
         self.set_memory_depth(trace_points)
         self.set_timescale(acq_time/10)
-        print('Sampling rate is {}'.format(self.get_sampling_rate()))
+        self.clear()
+        self.acquire()
+        
+        print('Sampling rate is {} MS/s'.format(self.get_sampling_rate()/1e6))
         
     
     def clear(self):
@@ -242,7 +245,7 @@ class Scope:
         return  self.query_string(':TIMebase:MAIN:SCALe?')
     
     def get_sampling_rate(self):
-        return  self.query_string(':ACQuire:SRATe?')
+        return  float(self.query_string(':ACQuire:SRATe?'))
         
     def set_channel_coupling(self, channel = 1, coupling = 'DC'):
         #DC
@@ -320,7 +323,8 @@ class Scope:
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     ch = 2
-    scope = Scope('10.2.60.173')
+    # scope = Scope('10.2.60.239')
+    scope = Scope('10.2.60.239',backend='@py')
     print('try something')
     # '''
     # averaging needs to be turned on\off manually

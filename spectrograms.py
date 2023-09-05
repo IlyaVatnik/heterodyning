@@ -11,8 +11,8 @@ Created on Thu Oct  1 11:37:33 2020
 
 @author: ilyav
 """
-__version__='3'
-__date__='2023.04.13'
+__version__='4'
+__date__='2023.09.05'
 
 from matplotlib import pyplot as plt
 from matplotlib.ticker import EngFormatter
@@ -70,6 +70,7 @@ def create_spectrogram_from_data(amplitude_trace,dt,
         
     real_power_coeff: 
         if not zero, then spec is power in W !!!!!!
+        ratio of real power to acquired in spectrogram
         
     Returns
     -------
@@ -125,8 +126,8 @@ class Mode():
         self.ind=ind
         self.freq=freq
         
-        self.birth_time=None
-        self.death_time=None
+        self.birth_times=None
+        self.death_times=None
         
         self.life_time=None
         self.max_power=power
@@ -358,16 +359,75 @@ class Spectrogram():
             self.modes.append(Mode(p,self.freqs[p],power=power))
             signal=self.spec[p,:]
             peak=np.nanargmax(signal)
+            temp=scipy.signal.find_peaks(signal, height=None,prominence=1*np.mean(signal))#distance=self.average_freq_window/(1/2/self.dt/len(self.freqs)))
+            peak=temp[0]
+            plt.figure()
+            plt.plot(signal)
+            plt.plot(peak,signal[peak],'o')
             # peaks,_=scipy.signal.find_peaks(signal, height=3*bn.nanstd(signal),width=average_factor_for_times,prominence=3*np.nanstd(signal))
             try:
-                widths,width_heights,left_ips, right_ips=scipy.signal.peak_widths(signal,[peak],rel_height=rel_height)
-                self.modes[mode_number].birth_time=self.times[int(left_ips[0])]
-                self.modes[mode_number].death_time=self.times[int(right_ips[0])]
+                widths,width_heights,left_ips, right_ips=scipy.signal.peak_widths(signal,peak,rel_height=rel_height)
+                # print(self.times[int(left_ips)])
+                
+                indexes_sorted=np.argsort(left_ips)
+                left_ips=left_ips[indexes_sorted]
+                right_ips=right_ips[indexes_sorted]
+                segments=[[left_ips[i],right_ips[i]] for i in range(len(left_ips))]
+                '''
+                remove intervals that are the same 
+                '''
+                # plt.figure()
+                # y=0
+                # for number,s in enumerate(segments):
+                #     plt.plot([s[0],s[1]],[y,y],linewidth=4,label=number)
+                #     y+=1
+                # plt.legend()
+                    
+                
+                def __remove_intesections(segments:list):
+                    for i in np.arange(1,len(segments)):
+                        if segments[i][0]<segments[i-1][1]:
+                            if segments[i][1]>segments[i-1][1]:
+                                segments[i-1][1]=segments[i][1]
+                            
+                            del segments[i]
+                            # segments=np.delete(segments,i)
+                            __remove_intesections(segments)
+                            break
+                    return segments
+                
+                segments=__remove_intesections(segments)    
+                
+                # plt.figure()
+                # y=0
+                # for number,s in enumerate(segments):
+                #     plt.plot([s[0],s[1]],[y,y],linewidth=4,label=number)
+                #     y+=1
+                # plt.legend()
+                    
+                # indexes_to_delete=[]
+                # for i in np.arange(1,len(left_ips)):
+                #     if left_ips[i]<right_ips[i-1]:
+                #         indexes_to_delete.append(i)
+                # left_ips=np.delete(left_ips,indexes_to_delete)
+                # right_ips=np.delete(right_ips,np.array(indexes_to_delete)-1)
+                
+                self.modes[mode_number].birth_times=np.array([self.times[np.int32(s[0])] for s in segments])
+                self.modes[mode_number].death_times=np.array([self.times[np.int32(s[1])] for s in segments])
+                
+                
+                # self.modes[mode_number].birth_times=self.times[np.int32(left_ips)]
+                # self.modes[mode_number].death_times=self.times[np.int32(right_ips)]
+                
+                
+                
+                
+                
             except RuntimeWarning:
-                self.modes[mode_number].birth_time=self.times[0]
-                self.modes[mode_number].death_time=self.times[-1]
-            self.modes[mode_number].life_time=self.modes[mode_number].death_time-self.modes[mode_number].birth_time
-            
+                self.modes[mode_number].birth_times=[self.times[0]]
+                self.modes[mode_number].death_times=[self.times[-1]]
+            self.modes[mode_number].life_time=np.sum(self.modes[mode_number].death_times-self.modes[mode_number].birth_times)
+      
         if self.fig_spec is not None and indicate_modes_on_spectrogram:
             if self.fig_format=='normal':
                 extraticks=[x.freq/1e6 for x in self.modes]
@@ -461,7 +521,7 @@ class Spectrogram():
         freq_index=np.argmin(abs((self.freqs-freq)))
         return self.spec[freq_index,:]
     
-    def plot_mode_dynamics(self,mode_number,NewFigure=True):
+    def plot_mode_dynamics(self,mode_number,NewFigure=True,show_lifespan=True):
         time,signal=self.get_mode_dynamics(mode_number)
         if NewFigure:
             fig=plt.figure()
@@ -471,7 +531,11 @@ class Spectrogram():
         plt.xlabel('Time, s')      
         plt.ylabel('Intensity, W')
         plt.title('Mode at {:.1f} MHz detuning'.format(self.modes[mode_number].freq/1e6))
+        if show_lifespan:
+            for i,_ in enumerate(self.modes[mode_number].birth_times):
+                plt.gca().axvspan(self.modes[mode_number].birth_times[i], self.modes[mode_number].death_times[i], alpha=0.1, color='green')
         plt.tight_layout()
+        
         return fig, plt.gca()
         
     def plot_mode_lowfreq_spectrum(self,mode_number):
@@ -678,7 +742,11 @@ def get_mode_ratio(spec1:Spectrogram,spec2:Spectrogram,mode:Mode):
     return (I1+I2),Ratio, Ratio_error,t,Ratio_dependence
         
 if __name__=='__main__':
-    f=r"D:\Ilya\Second round random laser\SMF-28 32 km\2023.03.16-17 testing different polarizations\At 1550.35\spectrogram_examples\1\Large R 1.spec"
-    spec=load_from_file(f)
-    spec.plot_spectrogram()
     
+    file=r"F:\Ilya\Second round random laser\MM 17 km\2023.09.04 line power measuremets with real\example power 6.897e-03.spec"
+    s=load_from_file(file)
+
+    # s.plot_spectrogram()
+    s.find_modes()
+    s.plot_mode_dynamics(0)
+    print(s.modes[0].life_time)
