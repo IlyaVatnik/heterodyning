@@ -8,7 +8,7 @@ import pickle
 #%%
 
 # scope=scope.Scope('WINDOWS-E76DLEM')
-scope=scope_rigol.Scope('10.2.60.239')
+scope=scope_rigol.Scope('10.2.60.108')
  #%%
 scope.macro_setup(trace_points=100e3,
                   acq_time=1e-5)
@@ -18,23 +18,23 @@ scope.macro_setup(trace_points=100e3,
 
 #%%
 
-LO = itla.PPCL550(11)
-LOax=itla.PPCL550(12)
+LO = itla.PPCL550(4)
+LOax=itla.PPCL550(3)
 # osa = yokogawa.Yokogawa(timeout=1e7)
 # osa.acquire()
 
 
 #%%
-wavelength= 1550.3e-9 #no balance
-LO_power=1300
+wavelength= 1550.31e-9 #no balance
+LO_power=1400
 
-wavelength_ax= 1550.3e-9 #no balance
-LO_power_ax=1300
+wavelength_ax= 1550.305e-9 #no balance
+LO_power_ax=1800
 
 #%%
 LOax.off()
 LOax.set_wavelength(wavelength)
-LOax.set_power(LO_power)
+LOax.set_power(LO_power_ax)
 LOax.on()
 LOax.mode('no dither')
 # LOax.mode('whisper')
@@ -60,9 +60,9 @@ print('Mean level is {:.3f} V'.format(mean_level))
 scope.set_channel_scale(1, 0.01)
 scope.set_channel_offset(1, -mean_level)
 #%%
-LO.set_FTFrequency(-100e6)
+LO.set_FTFrequency(-400e6)
 #%%
-real_power_coeff=0
+real_power_coeff=70
 plot_everything=True
 scope.trigger='SINGLe'
 trace_1=scope.acquire_and_return(1)
@@ -70,7 +70,7 @@ trace_1=scope.acquire_and_return(1)
 win_time=1e-6
 # IsAveraging=False
 IsAveraging=True
-average_freq_window=3e6
+average_freq_window=5e6
 average_time_window=5e-6
 
 
@@ -88,7 +88,7 @@ spec1.print_all_modes()
 
 #%%
 
-real_power=3.48e-6 # W
+real_power=40e-6 # W
 real_power_coeff=0
 # real_power_coeff=0.6254
 
@@ -113,7 +113,7 @@ print('coeff is {:.3f} with std {:.3f}'.format(real_power/np.mean(powers_array),
     
 #%%
 LO.off()
-LOax.off()
+LOax.off() 
 
 #%%
 # with open('example_trace 1 {}.pkl'.format(wavelength),'wb') as f:

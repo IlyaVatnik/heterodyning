@@ -77,12 +77,14 @@ class Scope:
             self.set_channel_impedance(key,channels_impedances[key])
         
     
-        self.set_memory_depth(trace_points)
         self.set_timescale(acq_time/10)
+        self.set_memory_depth(trace_points)
         self.clear()
         self.acquire()
         
         print('Sampling rate is {} MS/s'.format(self.get_sampling_rate()/1e6))
+        print('Memory depth is {:.3e} S'.format(self.get_memory_depth()))
+        print('Time span is {:.3f} us'.format(self.get_memory_depth()/self.get_sampling_rate()*1e6))
         
     
     def clear(self):
@@ -225,7 +227,7 @@ class Scope:
         self.resource.write_raw(b':STOP')
         
     def get_memory_depth(self):
-        return self.query_string(':ACQuire:MDEPth?')
+        return float(self.query_string(':ACQuire:MDEPth?'))
     
     def set_channel_on(self, channel = 1):
         self.resource.write_raw(bytes(':CHANnel{}:DISPlay 1'.format(channel), encoding = 'utf8'))
@@ -242,7 +244,7 @@ class Scope:
         
         
     def get_timescale(self):
-        return  self.query_string(':TIMebase:MAIN:SCALe?')
+        return  float(self.query_string(':TIMebase:MAIN:SCALe?'))
     
     def get_sampling_rate(self):
         return  float(self.query_string(':ACQuire:SRATe?'))
@@ -310,9 +312,13 @@ class Scope:
             raise RuntimeError('Acquisition timeout')
     
     def acquire_and_return(self,ch_num):
-        self.acquire(sleep_step=0.1)
+        self.acquire()
         self.set_wfm_source(ch_num)
-        return self.query_wave_fast()
+        N_points=0
+        while N_points==0:
+            Wave=self.query_wave_fast()
+            N_points=len(Wave.data)
+        return Wave
         
     def get_data(self,ch_num):
         self.set_wfm_source(ch_num)
@@ -324,13 +330,13 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     ch = 2
     # scope = Scope('10.2.60.239')
-    scope = Scope('10.2.60.239',backend='@py')
+    scope = Scope('10.2.60.108')
     print('try something')
     # '''
     # averaging needs to be turned on\off manually
     # '''
 
-    scope.trigger='AUTO'
+    scope.trigger='SINGLe'
     #anyway 8 bit only
 
     # scope.set_channel_on(ch)
@@ -344,7 +350,7 @@ if __name__ == '__main__':
     # print(scope.get_memory_depth())
 
     wave=scope.acquire_and_return(1)
-    plt.plot(wave.data)
+    # plt.plot(wave.data)
 
 
     

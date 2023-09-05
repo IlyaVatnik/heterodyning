@@ -126,6 +126,8 @@ class Mode():
         self.ind=ind
         self.freq=freq
         
+        self.life_spans=None
+        
         self.birth_times=None
         self.death_times=None
         
@@ -359,11 +361,8 @@ class Spectrogram():
             self.modes.append(Mode(p,self.freqs[p],power=power))
             signal=self.spec[p,:]
             peak=np.nanargmax(signal)
-            temp=scipy.signal.find_peaks(signal, height=None,prominence=1*np.mean(signal))#distance=self.average_freq_window/(1/2/self.dt/len(self.freqs)))
+            temp=scipy.signal.find_peaks(signal, height=None,prominence=prominance_factor*np.mean(signal))#distance=self.average_freq_window/(1/2/self.dt/len(self.freqs)))
             peak=temp[0]
-            plt.figure()
-            plt.plot(signal)
-            plt.plot(peak,signal[peak],'o')
             # peaks,_=scipy.signal.find_peaks(signal, height=3*bn.nanstd(signal),width=average_factor_for_times,prominence=3*np.nanstd(signal))
             try:
                 widths,width_heights,left_ips, right_ips=scipy.signal.peak_widths(signal,peak,rel_height=rel_height)
@@ -414,6 +413,8 @@ class Spectrogram():
                 
                 self.modes[mode_number].birth_times=np.array([self.times[np.int32(s[0])] for s in segments])
                 self.modes[mode_number].death_times=np.array([self.times[np.int32(s[1])] for s in segments])
+                
+                self.modes[mode_number].life_spans=[[self.modes[mode_number].birth_times[i],self.modes[mode_number].death_times[i]] for i in range(len(self.modes[mode_number].birth_times))]
                 
                 
                 # self.modes[mode_number].birth_times=self.times[np.int32(left_ips)]
