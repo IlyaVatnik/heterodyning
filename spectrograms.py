@@ -11,8 +11,8 @@ Created on Thu Oct  1 11:37:33 2020
 
 @author: ilyav
 """
-__version__='4'
-__date__='2023.09.05'
+__version__='4.1'
+__date__='2023.09.09'
 
 from matplotlib import pyplot as plt
 from matplotlib.ticker import EngFormatter
@@ -137,6 +137,10 @@ def create_calibration_curve(file_name, N_points,dt,win_time,overlap_time=0):
         1/dt,
         nperseg=int(win_time/dt), # to math the number of points with difinition in 'create_spectrogram_from_data'
         noverlap=int(overlap_time/dt))
+     
+     with open(file_name,'r') as f:
+         header = f.readline()
+     print('Calibration notes: '+header)
      [freqs_in_file,curve]=np.loadtxt(file_name)
      curve_interpolated=np.interp(freqs,freqs_in_file,curve)
      return curve_interpolated.reshape(-1,1)
