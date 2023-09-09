@@ -116,18 +116,31 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     
     
     s=Spectrogram(times,freqs, spec,params)
-    if cut_off:
-        s.cut_off_low_freqs(low_cut_off)
-        s.cut_off_high_freqs(high_cut_off)
     if calibration_curve is not None:
         s.spec*=calibration_curve*np.ones((np.shape(s.spec)))
         s.real_power_mode=True
     elif real_power_coeff!=0:
         s.spec*=real_power_coeff
         s.real_power_mode=True
+        
+    if cut_off:
+        s.cut_off_low_freqs(low_cut_off)
+        s.cut_off_high_freqs(high_cut_off)
     
     return s
     
+
+def create_calibration_curve(file_name, N_points,dt,win_time,overlap_time=0):
+         
+     freqs, _,_=scipy.signal.spectrogram(
+        np.zeros(N_points),
+        1/dt,
+        nperseg=int(win_time/dt), # to math the number of points with difinition in 'create_spectrogram_from_data'
+        noverlap=int(overlap_time/dt))
+     [freqs_in_file,curve]=np.loadtxt(file_name)
+     curve_interpolated=np.interp(freqs,freqs_in_file,curve)
+     return curve_interpolated.reshape(-1,1)
+     
 
 class Mode():
     def __init__(self,ind,freq,power=None):
@@ -249,7 +262,7 @@ class Spectrogram():
                     cbar.ax.yaxis.set_major_formatter(formatter1)
                 if lang=='ru':
                     if self.real_power_mode:
-                        cbar.set_label('Спектральная мощностm, Вт')
+                        cbar.set_label('Спектральная мощность, Вт')
                     else:
                         cbar.set_label('Интенсивность, отн. ед.')
                 elif lang=='en':
@@ -546,7 +559,7 @@ class Spectrogram():
             for i,_ in enumerate(self.modes[mode_number].birth_times):
                 plt.gca().axvspan(self.modes[mode_number].birth_times[i], self.modes[mode_number].death_times[i], alpha=0.1, color='green')
         plt.tight_layout()
-        
+        # plt.show()
         return fig, plt.gca()
         
     def plot_mode_lowfreq_spectrum(self,mode_number):
@@ -610,6 +623,7 @@ class Spectrogram():
             else:
                 pickle.dump([self.times,self.freqs,self.spec,self.params],f)
                 
+
                 
 def load_from_file(file):
     with open(file, 'rb') as f:
@@ -620,16 +634,7 @@ def load_from_file(file):
         times,freqs, spec,params=obj
         return Spectrogram(times,freqs, spec,params)
         
-def create_calibration_curve(file_name, win_time,N_points,sampling_rate):
-     freqs, _,_=scipy.signal.spectrogram(
-        np.zeros(N_points),
-        sampling_rate,
-        nperseg=int(win_time*sampling_rate),
-        noverlap=0)
-     [freqs_in_file,curve]=np.loadtxt(file_name)
-     curve_interpolated=np.interp(freqs,freqs_in_file,curve)
-     return curve_interpolated
-     
+
     
 
 
@@ -762,10 +767,44 @@ def get_mode_ratio(spec1:Spectrogram,spec2:Spectrogram,mode:Mode):
         
 if __name__=='__main__':
     
-    file=r"F:\Ilya\Second round random laser\MM 17 km\2023.09.04 line power measuremets with real\example power 6.897e-03.spec"
-    s=load_from_file(file)
-
-    # s.plot_spectrogram()
-    s.find_modes()
-    s.plot_mode_dynamics(0)
-    print(s.modes[0].life_time)
+    
+    win_time=4e-6
+    # IsAveraging=False
+    IsAveraging=True
+    average_freq_window=10e6
+    average_time_window=5e-6
+    
+    file=r"F:\Equipment\2023.09.07 testing heterodyning signal for diff freqs\example 30mW.trace"
+    with open(file,'rb') as f:
+        trace=pickle.load(f)
+    sp1=create_spectrogram_from_data(trace.data, trace.xinc,high_cut_off=700e6,win_time=win_time,
+                                     IsAveraging=IsAveraging,average_freq_window=average_freq_window,average_time_window=average_time_window)
+    sp1.plot_spectrogram()
+    sp1.find_modes()
+    sp1.print_all_modes()
+    
+    
+    win_time=4e-6
+    # IsAveraging=False
+    IsAveraging=True
+    average_freq_window=5e6
+    average_time_window=5e-6
+    
+    file2=r"F:\Equipment\2023.09.07 testing heterodyning signal for diff freqs\example 3mW.trace"
+    with open(file2,'rb') as f:
+        trace2=pickle.load(f)
+    sp2=create_spectrogram_from_data(trace2.data, trace2.xinc,high_cut_off=700e6,win_time=win_time,
+                                     IsAveraging=IsAveraging,average_freq_window=average_freq_window,average_time_window=average_time_window)
+    sp2.plot_spectrogram()
+    sp2.find_modes()
+    sp2.print_all_modes()
+    
+    
+    file2=r"F:\Equipment\2023.09.07 testing heterodyning signal for diff freqs\example 2mW.trace"
+    with open(file2,'rb') as f:
+        trace2=pickle.load(f)
+    sp2=create_spectrogram_from_data(trace2.data, trace2.xinc,high_cut_off=700e6,win_time=win_time,
+                                     IsAveraging=IsAveraging,average_freq_window=average_freq_window,average_time_window=average_time_window)
+    sp2.plot_spectrogram()
+    sp2.find_modes()
+    sp2.print_all_modes()

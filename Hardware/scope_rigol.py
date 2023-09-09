@@ -86,6 +86,10 @@ class Scope:
         print('Memory depth is {:.3e} S'.format(self.get_memory_depth()))
         print('Time span is {:.3f} us'.format(self.get_memory_depth()/self.get_sampling_rate()*1e6))
         
+        return [self.get_memory_depth(),self.get_sampling_rate()]
+        
+    
+
     
     def clear(self):
         """
@@ -124,7 +128,7 @@ class Scope:
         # print(preamble)
         self.resource.write_raw(b"WAVeform:STARt 1")
         self.resource.write_raw(bytes("WAVeform:STOP {}".format(int(wfmpts)), encoding = 'utf8'))
-        origins = np.array(list(map(float,(x_increment, x_origin, y_increment, y_origin))), dtype = 'f')
+        origins = np.array(list(map(float,(x_increment, x_origin, y_increment, y_origin))))#, dtype = 'float')
         
         
         # print(origins,int(y_reference))
@@ -179,6 +183,9 @@ class Scope:
     def get_wfm_mode(self):
         return self.query_string(':WAVeform:MODE?')
     
+    def get_xinc(self):
+        return float(self.query_string(':WAVeform:XINCrement?'))
+    
     def set_wfm_format(self, fmt = 'BYTE'):
         self.resource.write_raw(bytes(':WAVeform:FORMat {}'.format(fmt), encoding = 'utf8'))
     
@@ -227,7 +234,7 @@ class Scope:
         self.resource.write_raw(b':STOP')
         
     def get_memory_depth(self):
-        return float(self.query_string(':ACQuire:MDEPth?'))
+        return int(float(self.query_string(':ACQuire:MDEPth?')))
     
     def set_channel_on(self, channel = 1):
         self.resource.write_raw(bytes(':CHANnel{}:DISPlay 1'.format(channel), encoding = 'utf8'))
@@ -247,7 +254,7 @@ class Scope:
         return  float(self.query_string(':TIMebase:MAIN:SCALe?'))
     
     def get_sampling_rate(self):
-        return  float(self.query_string(':ACQuire:SRATe?'))
+        return  int(float(self.query_string(':ACQuire:SRATe?')))
         
     def set_channel_coupling(self, channel = 1, coupling = 'DC'):
         #DC
