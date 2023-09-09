@@ -30,7 +30,7 @@ wavelength= 1550.30e-9 #no balance
 LO_power=1600
 
 wavelength_ax= 1550.300e-9 #no balance
-LO_power_ax=800
+LO_power_ax=1500
 
 #%%
 LOax.off()
@@ -49,23 +49,9 @@ LO.set_FTFrequency(0)
 LO.on()
 # LO.mode('no dither')
 LO.mode('whisper')
-#%%
-# scope.set_channel_offset(1, -0.349)
-# scope.set
-scope.set_channel_scale(1, 1)
 
-real_power_ch1=0
-scope.trigger='AUTO'
-trace_1=scope.acquire_and_return(1)
-mean_level=np.mean(trace_1.data)
-print('Mean level is {:.3f} V'.format(mean_level))
-
-scope.set_channel_scale(1, 0.01)
-scope.set_channel_offset(1, -mean_level)
 #%%
-LO.set_FTFrequency(00e6)
-#%%
-initial_freq_shift=0e6
+initial_freq_shift=00e6
 LOax.set_FTFrequency(initial_freq_shift)
 #%%
 real_power_coeff=0
@@ -96,7 +82,8 @@ spec1.print_all_modes()
 
 #%%
 
-real_power=95e-6 # W
+LO_real_power=0.72 # mW
+LOax_real_power=1.8 # mW
 real_power_coeff=0
 # real_power_coeff=0.6254
 
@@ -127,7 +114,6 @@ for i in range(N_average):
 print('\nPower is {:.3e} with std {:.3e} '.format(np.mean(powers_array),np.std(powers_array)))
 print('Freqs changed from {:.4e} to {:.4e}'.format(np.min(freqs_array),np.max(freqs_array)))
 
-print('coeff is {:.3f} with std {:.3f}'.format(real_power/np.mean(powers_array), real_power/np.mean(powers_array)**2*np.std(powers_array) ))   # real power divided by measured arb.u.
 
 plt.figure()
 plt.plot(freqs_array,powers_array,'o')
@@ -136,7 +122,7 @@ plt.ylabel('Power measured, arb.u.')
 plt.gca().set_xscale('log')
 plt.gca().set_yscale('log')
 #%%
-np.savetxt('Balanced LO 0.49 mW, LOax 0.35 mW.txt',[freqs_array,powers_array])
+np.savetxt('Balanced LO {:.2f} mW, LOax {:.2f} mW.txt'.format(LO_real_power, LOax_real_power),[freqs_array,powers_array])
     
 #%%
 LO.off() 
@@ -148,9 +134,3 @@ LOax.off()
 # with open('example_trace 2 {}.35.pkl'.format(wavelength),'wb') as f:
 #     pickle.dump(trace_2,f)
     
-#%%
-spec1.save_to_file('example 9.spec',as_object=False)
-#%%
-with open('example 5 mV.trace','wb') as f:
-    pickle.dump(trace_1,f)
-

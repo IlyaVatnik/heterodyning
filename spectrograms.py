@@ -130,7 +130,7 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     return s
     
 
-def create_calibration_curve(file_name, N_points,dt,win_time,overlap_time=0):
+def create_calibration_curve(file_name, current_LO_power_in_mW,N_points,dt,win_time,overlap_time=0):
          
      freqs, _,_=scipy.signal.spectrogram(
         np.zeros(N_points),
@@ -141,7 +141,15 @@ def create_calibration_curve(file_name, N_points,dt,win_time,overlap_time=0):
      with open(file_name,'r') as f:
          header = f.readline()
      print('Calibration notes: '+header)
+     try:
+         import re
+         LO_power_in_file=float(re.search('LO (.*) mW', file_name).group(1))
+     except Exception as e:
+         print(e)
+         print('No LO_power indicated in file name')
+         
      [freqs_in_file,curve]=np.loadtxt(file_name)
+     curve=curve*LO_power_in_file/current_LO_power_in_mW
      curve_interpolated=np.interp(freqs,freqs_in_file,curve)
      return curve_interpolated.reshape(-1,1)
      
