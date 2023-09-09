@@ -43,9 +43,10 @@ def create_spectrogram_from_data(amplitude_trace,dt,
                                  average_freq_window=average_freq_window,
                                  window='hamming',
                                  cut_off=True,
-                                 real_power_coeff=0,
                                  low_cut_off=200e6,
-                                 high_cut_off=10e9):
+                                 high_cut_off=10e9,
+                                 real_power_coeff=0,
+                                 calibration_curve=None):
     '''
     
 
@@ -71,6 +72,9 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     real_power_coeff: 
         if not zero, then spec is power in W !!!!!!
         ratio of real power to acquired in spectrogram
+        
+    calibration curve:
+        real_power coefficient taking into account dependence on frequency detuning
         
     Returns
     -------
@@ -115,9 +119,13 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     if cut_off:
         s.cut_off_low_freqs(low_cut_off)
         s.cut_off_high_freqs(high_cut_off)
-    if real_power_coeff!=0:
+    if calibration_curve is not None:
+        s.spec*=calibration_curve*np.ones((np.shape(s.spec)))
+        s.real_power_mode=True
+    elif real_power_coeff!=0:
         s.spec*=real_power_coeff
         s.real_power_mode=True
+    
     return s
     
 
@@ -133,6 +141,8 @@ class Mode():
         
         self.life_time=None
         self.max_power=power
+        
+
         
 
 
@@ -610,8 +620,16 @@ def load_from_file(file):
         times,freqs, spec,params=obj
         return Spectrogram(times,freqs, spec,params)
         
-        
-    
+def create_calibration_curve(file_name, win_time,N_points,sampling_rate):
+     freqs, _,_=scipy.signal.spectrogram(
+        np.zeros(N_points),
+        sampling_rate,
+        nperseg=int(win_time*sampling_rate),
+        noverlap=0)
+     [freqs_in_file,curve]=np.loadtxt(file_name)
+     curve_interpolated=np.interp(freqs,freqs_in_file,curve)
+     return curve_interpolated
+     
     
 
 
