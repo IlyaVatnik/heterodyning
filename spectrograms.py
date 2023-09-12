@@ -155,7 +155,7 @@ def create_calibration_curve(file_name, current_LO_power_in_mW,N_points,dt,win_t
      
 
 class Mode():
-    def __init__(self,ind,freq,power=None):
+    def __init__(self,ind,freq,power=None,power_dynamics=None):
         self.ind=ind
         self.freq=freq
         
@@ -166,6 +166,7 @@ class Mode():
         
         self.life_time=None
         self.max_power=power
+        self.power_dynamics=None
         
 
         
