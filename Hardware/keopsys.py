@@ -32,6 +32,8 @@ class Keopsys:
         return result
 
     def set_power(self, pwr):
+        if pwr<270:
+            print('Error. Power {} too small to be set with this Keopsys laser'.format(pwr/10))
         result= self.command('SOP={}'.format(pwr)) #dBm * 10
         print('Pump power is set to {}'.format(pwr))
         return result
