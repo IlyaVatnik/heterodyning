@@ -28,19 +28,14 @@ import warnings
 warnings.filterwarnings("error")
 
 
-win_time=1e-6
-overlap_time=0
-IsAveraging=False
-average_time_window=10e-6    
-average_freq_window=5e6
 
 
 def create_spectrogram_from_data(amplitude_trace,dt,
-                                 win_time=win_time,
-                                 overlap_time=overlap_time,
-                                 IsAveraging=IsAveraging,
-                                 average_time_window=average_time_window,    
-                                 average_freq_window=average_freq_window,
+                                 win_time=1e-6,
+                                 overlap_time=0,
+                                 IsAveraging=False,
+                                 average_time_window=10e-6 ,    
+                                 average_freq_window=5e6,
                                  window='hamming',
                                  cut_off=True,
                                  low_cut_off=200e6,
@@ -130,8 +125,8 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     return s
     
 
-def create_calibration_curve(file_name, current_LO_power_in_mW,N_points,dt,win_time,overlap_time=0):
-         
+def create_calibration_curve(file_name, current_LO_power_in_mW,N_points,dt,win_time,overlap_time=0,current_transmission_in_system=1):
+        
      freqs, _,_=scipy.signal.spectrogram(
         np.zeros(N_points),
         1/dt,
@@ -149,7 +144,7 @@ def create_calibration_curve(file_name, current_LO_power_in_mW,N_points,dt,win_t
          print('No LO_power indicated in file name')
          
      [freqs_in_file,curve]=np.loadtxt(file_name)
-     curve=curve*LO_power_in_file/current_LO_power_in_mW
+     curve=curve*LO_power_in_file/current_LO_power_in_mW/current_transmission_in_system
      curve_interpolated=np.interp(freqs,freqs_in_file,curve)
      return curve_interpolated.reshape(-1,1)
      
@@ -268,6 +263,11 @@ class Spectrogram():
                 elif lang=='ru':
                     plt.ylabel('Отстройка, МГц')
                     plt.xlabel('Время, мс')
+            elif formatter=='none':
+                im=ax.pcolorfast(self.times,self.freqs,self.spec,cmap=cmap,vmin=vmin,vmax=vmax)
+                ax.xaxis.set_major_formatter(formatter1)
+                ax.yaxis.set_major_formatter(formatter1)
+                
     
             if show_colorbar:
                 cbar=plt.colorbar(im)
@@ -283,6 +283,8 @@ class Spectrogram():
                         cbar.set_label('Spectral power, W')
                     else:
                         cbar.set_label('Intensity, arb.u.')
+                elif formatter=='none':
+                    pass
             
         elif scale=='log':
             if formatter=='sci':
@@ -304,6 +306,11 @@ class Spectrogram():
                     plt.ylabel('Отстройка, МГц')
                     plt.xlabel('Время, мс')
                     
+            elif formatter=='none':
+                im=ax.pcolorfast(self.times,self.freqs,10*np.log10(self.spec/1e-3),cmap=cmap,vmin=vmin,vmax=vmax)
+                ax.xaxis.set_major_formatter(formatter1)
+                ax.yaxis.set_major_formatter(formatter1)
+                    
                     
             if show_colorbar:
                 cbar=plt.colorbar(im)
@@ -314,9 +321,10 @@ class Spectrogram():
                         cbar.set_label('Интенсивность, дБм') 
                     else:
                         cbar.set_label('Интенсивность, дБ') 
-                elif lang=='eng':
+                elif lang=='en':
                     if self.real_power_mode:
                         cbar.set_label('Intensity, dBm')
+                        
                     else:
                         cbar.set_label('Intensity, dB')
 
@@ -491,8 +499,10 @@ class Spectrogram():
         for i,_ in enumerate(self.modes):
             self.plot_mode_dynamics(i)
             plt.title(r'$\delta \nu$={:.0f} MHz, life time={:.2f} ms'.format(self.modes[i].freq/1e6,self.modes[i].life_time*1e3))
-            plt.axvline(self.modes[i].birth_time)
-            plt.axvline(self.modes[i].death_time)
+            for j,_ in enumerate(self.modes[i].birth_times):
+                plt.gca().axvspan(self.modes[i].birth_times[j], self.modes[i].death_times[j], alpha=0.1, color='green')
+            # plt.axvline(self.modes[i].birth_time)
+            # plt.axvline(self.modes[i].death_time)
             
     def print_all_modes(self):
         if self.N_modes>0:
@@ -556,7 +566,7 @@ class Spectrogram():
     
     def get_dynamics_at_freq(self,freq):
         freq_index=np.argmin(abs((self.freqs-freq)))
-        return self.spec[freq_index,:]
+        return self.times,self.spec[freq_index,:]
     
     def plot_mode_dynamics(self,mode_number,NewFigure=True,show_lifespan=True):
         time,signal=self.get_mode_dynamics(mode_number)
