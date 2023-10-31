@@ -346,15 +346,23 @@ class Spectrogram():
         return fig,ax
         
     
-    def plot_instant_spectrum(self,time:float,scale='log'):
+    def plot_instant_spectrum(self,time:float,scale='log',**plot_params):
         ind=np.argmin(abs(self.times-time))
         fig=plt.figure()
-        if scale=='lin':
-            plt.plot(self.freqs,self.spec[:,ind])
-            plt.ylabel('Spectral power, arb.u.')
-        elif scale=='log':
-            plt.plot(self.freqs,10*np.log10(self.spec[:,ind]/1e-3))
-            plt.ylabel('Spectral power, dB')
+        if self.real_power_mode:
+            if scale=='lin':
+                plt.plot(self.freqs,self.spec[:,ind],**plot_params)
+                plt.ylabel('Spectral power, W')
+            elif scale=='log':
+                plt.plot(self.freqs,10*np.log10(self.spec[:,ind]/1e-3),**plot_params)
+                plt.ylabel('Spectral power, dBm')
+        else:
+            if scale=='lin':
+                plt.plot(self.freqs,self.spec[:,ind],**plot_params)
+                plt.ylabel('Spectral power, arb.u.')
+            elif scale=='log':
+                plt.plot(self.freqs,10*np.log10(self.spec[:,ind]/1e-3),**plot_params)
+                plt.ylabel('Spectral power, dB')
         plt.gca().xaxis.set_major_formatter(formatter1)
         plt.gca().yaxis.set_major_formatter(formatter1)
         
