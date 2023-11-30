@@ -38,8 +38,8 @@ def create_spectrogram_from_data(amplitude_trace,dt,
                                  average_freq_window=5e6,
                                  window='hamming',
                                  cut_off=True,
-                                 low_cut_off=200e6,
-                                 high_cut_off=10e9,
+                                 low_cut_off=00e6,
+                                 high_cut_off=100e9,
                                  real_power_coeff=0,
                                  calibration_curve=None):
     '''
@@ -786,8 +786,8 @@ def create_spectrogram_from_file_two_channels_agilent(f_name,
 
 def get_mode_ratio(spec1:Spectrogram,spec2:Spectrogram,mode:Mode):
     t=spec1.times
-    i1=int(np.argwhere(t==mode.birth_time))
-    i2=int(np.argwhere(t==mode.death_time))
+    i1=int(np.argwhere(t==mode.birth_times[0]))
+    i2=int(np.argwhere(t==mode.death_times[0]))
     
     I1=spec1.spec[mode.ind,:]
     I2=spec2.spec[mode.ind,:]

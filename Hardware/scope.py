@@ -180,7 +180,7 @@ class Scope:
             sampling_rate = 0, # if 0 - minimum
             trigger = 'AUTO',
             trigger_channel=1,
-            bandwidth='MAX', # AUTO, MAX, 4E09, 3.5E09, 3E09, 2.5E09, 2E09, 1.5E09, 1E09, 5E08
+            bandwidth='AUTO', # AUTO, MAX, 4E09, 3.5E09, 3E09, 2.5E09, 2E09, 1.5E09, 1E09, 5E08
             wave_byteorder = 'MSBF',
             wave_format = 'WORD', 
             wave_source = 1, # channel number
@@ -189,7 +189,7 @@ class Scope:
             header = 'OFF'
             ):
         """
-        Needs to be  later
+        Needs to be later
         """
         
         self.err_corr()
@@ -239,7 +239,6 @@ class Scope:
         self.resource.write_raw(bytes('TRIGger:SWEep '+trigger, encoding = 'utf8'))
         stdout.write(str(self.query_string('TRIGger:SWEep?')+b'\n'))
 
-        
         self.resource.write_raw(bytes(':TRIGger:EDGE:SOURce CHANnel{}'.format(trigger_channel), encoding = 'utf8'))
         # stdout.write(str(self.query_string('TRIGger:AND:SOURce? CHANnel')+b'\n'))
         
@@ -346,8 +345,9 @@ if __name__ == '__main__':
     #         trigger = 'AUTO',
     #         trigger_channel=4,
     #         wave_source = 1) # channel number
-    # scope.acquire()
-    # wave = scope.query_wave_fast()
+    scope.acquire()
+    scope.set_wfm_source(2)
+    wave = scope.query_wave_fast()
 
 
     
