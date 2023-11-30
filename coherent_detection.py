@@ -1,21 +1,19 @@
 import numpy as np
 from scipy.optimize import minimize
-
 from scipy.fft import rfft, rfftfreq,irfft
-
 from matplotlib.ticker import EngFormatter
 formatter1 = EngFormatter()
 import matplotlib.pyplot as plt
 
   
-def derive_dynamics(signal1,signal2,time_step,delay=0,norm_coeff=1,
+def derive_dynamics(I,Q,time_step,delay=0,norm_coeff=1,
                     remove_linear_phase=True):
     '''
     Parameters
     ----------
-    signal1 : array
+    I : array
         First channel oscilloscope (Inphase).
-    signal2 : array
+    Q : array
         Second channel oscilloscope (Quadratice).
     time_step : float
         time increment of osciiloscopes.
@@ -35,16 +33,17 @@ def derive_dynamics(signal1,signal2,time_step,delay=0,norm_coeff=1,
 
     '''
     delay_index=abs(int(np.floor(delay*1e-12/time_step)))
+    
     if delay_index!=0 and delay>0:
-        I=signal1[:-delay_index]
-        Q=signal2[delay_index:]
+        I=I[:-delay_index]
+        Q=Q[delay_index:]
         
     elif delay<0:
-        I=signal1[delay_index:]
-        Q=signal2[:-delay_index]
+        I=I[delay_index:]
+        Q=Q[:-delay_index]
     else:
-        I=signal1
-        Q=signal2
+        pass
+    
     I_norm=I*norm_coeff
     Intensity=(I_norm**2+Q**2)
     Phase=np.arctan(I_norm/Q)
@@ -108,8 +107,7 @@ def plot_dynamics(times,Intensity,Phase):
 def filter_signals(signal1,signal2, xinc,low_cut_off,high_cut_off):
     
     freqs = rfftfreq(len(signal1), 1 / xinc)
-    
-   
+       
     yf1 = rfft(signal1)
     yf1[np.logical_and(freqs<low_cut_off,freqs>high_cut_off)] = 0
     
