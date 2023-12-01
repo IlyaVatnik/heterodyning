@@ -44,7 +44,10 @@ def derive_dynamics(I,Q,time_step,delay=0,norm_coeff=1,
     else:
         pass
     
+    
+    Q[Q==0]=1e-16        #replace zeros in Q on machine epsilon
     I_norm=I*norm_coeff
+    
     Intensity=(I_norm**2+Q**2)
     Phase=np.arctan(I_norm/Q)
     Phase=np.unwrap(Phase,discont=np.pi/2, period=np.pi)
@@ -104,18 +107,22 @@ def plot_dynamics(times,Intensity,Phase):
     plt.show()
     
     
-def filter_signals(signal1,signal2, xinc,low_cut_off,high_cut_off):
+def filter_signals(signal1,signal2, xinc,mode_freq,
+                   mode_bandwidth=10e6,
+                   low_freqs_to_remain=100e6):
     
-    freqs = rfftfreq(len(signal1), 1 / xinc)
-       
-    yf1 = rfft(signal1)
-    yf1[np.logical_and(freqs<low_cut_off,freqs>high_cut_off)] = 0
-    
-    yf2 = rfft(signal2)
-    yf2[np.logical_and(freqs<low_cut_off,freqs>high_cut_off)] = 0
+    freqs = rfftfreq(len(signal1), xinc)
     
     
-    new_signal1 = irfft(yf1)
-    new_signal2 = irfft(yf2)
+    yf = rfft(signal1)
+    yf[freqs>mode_freq+mode_bandwidth/2] = 0
+    yf[(freqs<mode_freq-mode_bandwidth/2) & (freqs>low_freqs_to_remain)] = 0
+    new_signal1 = irfft(yf)
+    
+    yf = rfft(signal2)
+    yf[freqs>mode_freq+mode_bandwidth/2] = 0
+    yf[(freqs<mode_freq-mode_bandwidth/2) & (freqs>low_freqs_to_remain)] = 0
+    new_signal2 = irfft(yf)
+    
 
     return new_signal1,new_signal2,xinc
