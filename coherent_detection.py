@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 
   
 def derive_dynamics(I,Q,time_step,delay=0,norm_coeff=1,
-                    remove_linear_phase=True):
+                    remove_linear_phase=True,detuning=None,
+                    fitting_times=None):
     '''
     Parameters
     ----------
@@ -51,10 +52,21 @@ def derive_dynamics(I,Q,time_step,delay=0,norm_coeff=1,
     Intensity=(I_norm**2+Q**2)
     Phase=np.arctan(I_norm/Q)
     Phase=np.unwrap(Phase,discont=np.pi/2, period=np.pi)
+    # Phase=np.unwrap(Phase,discont=np.pi, period=2*np.pi)
     times=time_step*np.arange(len(I))
     if remove_linear_phase:
-        fit_params=np.polyfit(times,Phase,deg=1)
-        Phase-=fit_params[1]+times*fit_params[0]
+        if detuning is None:
+            if fitting_times==None:
+                fit_params=np.polyfit(times,Phase,deg=1)
+                Phase-=fit_params[1]+times*fit_params[0]
+            else:
+                start_time,stop_time=fitting_times[0],fitting_times[1]
+                ind_start=np.argmin(abs(times-start_time))
+                ind_stop=np.argmin(abs(times-stop_time))
+                fit_params=np.polyfit(times[ind_start:ind_stop],Phase[ind_start:ind_stop],deg=1)
+                Phase-=fit_params[1]+times*fit_params[0]
+        else:
+            Phase-=detuning*2*np.pi*times
     return times,Intensity,Phase
 
 def optimize_delay_and_coeff(signal1,signal2,xinc): 
