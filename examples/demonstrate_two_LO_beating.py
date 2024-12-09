@@ -1,7 +1,7 @@
 import numpy as np
 import heterodyning
 from heterodyning.spectrograms import create_spectrogram_from_data
-from heterodyning.Hardware import scope,itla,yokogawa
+from heterodyning.Hardware import scope,itla,yokogawa,scope_rigol
 import matplotlib.pyplot as plt
 from heterodyning.Hardware.APEX_OSA import APEX_OSA_with_additional_features
 
@@ -9,9 +9,9 @@ __version__='2'
 __date__='2023.03.29'
 #%%
 
-scope=scope.Scope('WINDOWS-E76DLEM')
+# scope=scope.Scope('WINDOWS-E76DLEM')
 # scope=scope_rigol.Scope('RIGOL_DS8A2')
-# scope=scope_rigol.Scope('168.0.0.1')
+scope=scope_rigol.Scope('10.2.60.167')
 
 OSA = APEX_OSA_with_additional_features('10.2.60.25')
 #%%

@@ -138,3 +138,11 @@ def filter_signals(signal1,signal2, xinc,mode_freq,
     
 
     return new_signal1,new_signal2,xinc
+
+
+def filter_phase(phase, xinc, low_cut_off):
+    freqs = rfftfreq(len(phase), xinc)
+    yf = rfft(phase)
+    yf[freqs<low_cut_off] = 0
+    new_phase = irfft(yf)
+    return new_phase
