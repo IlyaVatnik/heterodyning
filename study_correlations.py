@@ -3,7 +3,6 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import pickle
-import scope 
 import scipy.signal as signal
 import heterodyning
 from heterodyning.spectrograms import create_spectrogram_from_data
@@ -13,8 +12,20 @@ __version__='0.2'
 __date__='09.12.2024'
 from matplotlib.ticker import EngFormatter
 stokes_detuning=10.826e9
-
+LIGHT_SPEED=299792458
 #%%
+
+def get_detuning_of_two_LO(wavelengths,spectrum):
+    '''
+    wavelengths - in nm
+    
+    return detuning between two lasers in Hz
+    '''
+    peaks=signal.find_peaks(spectrum,prominence=10)
+    peak1,peak2=peaks[0][0],peaks[0][1]
+    detuning_freqs=LIGHT_SPEED*(1/wavelengths[peak1]-1/wavelengths[peak2])*1e9
+    return detuning_freqs
+
 def error_of_stokes_freqs(freq1,freq2,detuning,stokes_number):
 
     error=min(abs(freq1+freq2+detuning-stokes_detuning*stokes_number),
@@ -34,9 +45,9 @@ def check_simultaneity(mode1,mode2):
                 jj_b=jj
     return error,ii_b,jj_b
 
-def find_stokes_modes(modes1,modes2,stokes_number=1, print_lists=False):
-    acceptable_freq_error=200e6 # Hz
-    acceptable_time_error=200e-6 # s
+def find_stokes_modes(modes1,modes2,stokes_number=1, print_lists=False,
+                      acceptable_freq_error=40e6,
+                      acceptable_time_error=300e-6):
     list_errors=[]
     for ii,m1 in enumerate(modes1):
         for jj,m2 in enumerate(modes2):
@@ -53,9 +64,9 @@ def find_stokes_modes(modes1,modes2,stokes_number=1, print_lists=False):
     return np.nan,np.nan, np.nan,np.nan
 
 
-def create_list_of_simult_stokes_modes(modes1,modes2,detuning,stokes_number=1,print_lists=False):
-    acceptable_freq_error=50e6 # Hz
-    acceptable_time_error=200e-6 # s
+def create_list_of_simult_stokes_modes(modes1,modes2,detuning,stokes_number=1,print_lists=False,
+                                       acceptable_freq_error=50e6, # Hz
+                                       acceptable_time_error=300e-6): # s
     list_errors=[]
     for ii,m1 in enumerate(modes1):
         for jj,m2 in enumerate(modes2):
