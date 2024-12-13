@@ -6,11 +6,12 @@ import pickle
 import scipy.signal as signal
 import heterodyning
 from heterodyning.spectrograms import create_spectrogram_from_data
-
+from matplotlib.ticker import EngFormatter
+formatter1 = EngFormatter(places=2)
 
 __version__='0.2'
 __date__='09.12.2024'
-from matplotlib.ticker import EngFormatter
+
 stokes_detuning=10.826e9
 LIGHT_SPEED=299792458
 #%%
@@ -64,7 +65,7 @@ def find_stokes_modes(modes1,modes2,stokes_number=1, print_lists=False,
     return np.nan,np.nan, np.nan,np.nan
 
 
-def create_list_of_simult_stokes_modes(modes1,modes2,detuning,stokes_number=1,print_lists=False,
+def create_list_of_simult_brillouin_modes(modes1,modes2,detuning,stokes_number=1,print_lists=False,
                                        acceptable_freq_error=50e6, # Hz
                                        acceptable_time_error=300e-6): # s
     list_errors=[]
@@ -84,38 +85,22 @@ def create_list_of_simult_stokes_modes(modes1,modes2,detuning,stokes_number=1,pr
     return new_list
 
 def get_correlation_time(spec1,spec2,detuning,stokes_number,
-                         mode_index_1, mode_index_2,mode1_birth_time_index,plot=True):
+                         mode_index_1, mode_index_2,mode1_birth_time_index,plot=True,
+                         span=5e-3):
     mode1=spec1.modes[mode_index_1]
     mode2=spec2.modes[mode_index_2]
     times,mode1_d=spec1.get_mode_dynamics(mode_index_1)
     _,mode2_d=spec2.get_mode_dynamics(mode_index_2)
-    span=0.3e-3
     mode1_d=mode1_d[(times > mode1.birth_times[mode1_birth_time_index]-span) & (times<mode1.death_times[mode1_birth_time_index]+span)]
     mode2_d=mode2_d[(times > mode1.birth_times[mode1_birth_time_index]-span) & (times<mode1.death_times[mode1_birth_time_index]+span)]
     times=times[(times > mode1.birth_times[mode1_birth_time_index]-span) & (times<mode1.death_times[mode1_birth_time_index]+span)]
 
     correlation=signal.correlate(mode1_d,mode2_d)
+    correlation /= np.sqrt(np.sum(np.abs(mode1_d)**2)*np.sum(np.abs(mode2_d)**2))
     correlation_lags=signal.correlation_lags(len(mode1_d),len(mode2_d))
     correlation_lags=correlation_lags*(times[1]-times[0])
     
-    if plot:
-        plt.figure()
-        plt.plot(times,mode1_d,label='ch1')
-        plt.xlabel('Time, s')
-        plt.gca().xaxis.set_major_formatter(formatter1)
-        plt.plot(times,mode2_d,color='red',label='ch2')
-        plt.ylabel('Insensity, arb.u.')
-        plt.tight_layout()
-        plt.legend()
-    
-    
-        plt.figure()
-        plt.plot(correlation_lags,correlation)
-        plt.gca().xaxis.set_major_formatter(formatter1)
-        plt.gca().yaxis.set_major_formatter(formatter1)
-        plt.xlabel('Delay, s')
-        plt.ylabel('Correlation')
-        plt.tight_layout()
+ 
         
         
     correlation_shift=correlation_lags[np.argmax(correlation)]
@@ -124,8 +109,30 @@ def get_correlation_time(spec1,spec2,detuning,stokes_number,
     
     error_time,_,_=check_simultaneity(mode1,mode2)
     
+    if plot:
+        fig_dynamics=plt.figure()
+        plt.plot(times,mode1_d,label='pump')
+        plt.xlabel('Time, s')
+        plt.gca().xaxis.set_major_formatter(formatter1)
+        plt.plot(times,mode2_d,color='red',label='Stokes')
+        plt.ylabel('Insensity, arb.u.')
+        plt.tight_layout()
+        plt.legend()
+        plt.title('Detuning={:.2f} MHz'.format(error_of_stokes_freq/1e6))
+    
+    
+        fig_correlation=plt.figure(figsize=(8,6))
+        plt.plot(correlation_lags,correlation)
+        plt.gca().xaxis.set_major_formatter(formatter1)
+        plt.xlabel('Delay, s')
+        plt.ylabel('Correlation')
+        plt.tight_layout()
+    else:
+        fig_dynamics=None
+        fig_correlation=None
+    
         
-    return correlation_shift,error_of_stokes_freq,error_time
+    return correlation_shift,error_of_stokes_freq,error_time,fig_dynamics,fig_correlation
     
 def get_oscillogram(trace,t_min,t_max):
     times=np.arange(len(trace.data))*trace.xinc
@@ -133,13 +140,16 @@ def get_oscillogram(trace,t_min,t_max):
 
 def plot_oscillogram(trace,t_min,t_max):
     times, data=get_oscillogram()
+    
+    
+
 
 
 #%%
 
 if __name__=='__main__':
     
-    formatter1 = EngFormatter(places=2)
+    
 
 
     # file='3rdStokes-32.7-29'
@@ -182,7 +192,7 @@ if __name__=='__main__':
     spec1.print_all_modes()
     spec2.print_all_modes()
     #%%
-    pair_list=create_list_of_simult_stokes_modes(spec1.modes, spec2.modes,detuning,stokes_number,
+    pair_list=create_list_of_simult_brillouin_modes(spec1.modes, spec2.modes,detuning,stokes_number,
                                                  print_lists=True)
     print(pair_list)
     for l in pair_list:
