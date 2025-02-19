@@ -127,7 +127,7 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     
 
 def create_calibration_curve(device_calibration_file_names, LO_power,R_osc,
-                             N_points,dt,win_time,current_transmission_in_system=1):
+                             dt,win_time,):
     '''
     device_calibration_file_names=[device1_calibraion_file,device2_calibration_file,...]
     LO_power - in mW
