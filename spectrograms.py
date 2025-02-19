@@ -11,8 +11,8 @@ Created on Thu Oct  1 11:37:33 2020
 
 @author: ilyav
 """
-__version__='4.1'
-__date__='2023.09.09'
+__version__='5'
+__date__='2025.02.19'
 
 from matplotlib import pyplot as plt
 from matplotlib.ticker import EngFormatter
@@ -21,6 +21,7 @@ import matplotlib
 import numpy as np
 import scipy.signal
 import scipy.fft as fft
+from scipy.interpolate import interp1d
 import bottleneck as bn
 import pickle
 import heterodyning.agilent_bin_beta as b_reader
@@ -125,12 +126,36 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     return s
     
 
-def create_calibration_curve(file_name, current_LO_power_in_mW,N_points,dt,win_time,overlap_time=0,current_transmission_in_system=1):
+def create_calibration_curve(device_calibration_file_names, LO_power,R_osc,
+                             N_points,dt,win_time,current_transmission_in_system=1):
+    '''
+    device_calibration_file_names=[device1_calibraion_file,device2_calibration_file,...]
+    LO_power - in mW
+    R_osc - in Om
+    '''
+    freqs, _,_=scipy.signal.spectrogram(
+        np.zeros(int(win_time/dt)*2),
+        1/dt,
+        nperseg=int(win_time/dt), # to match the number of points with difinition in 'create_spectrogram_from_data'
+        noverlap=0)
+    K_product=np.ones(len(freqs))
+    for file in device_calibration_file_names:
+        data=np.genfromcsv(file)
+        freqs_device=data[:,0]
+        Koefficient_device=data[:,1]
+        interp_func = interp1d(freqs_device, Koefficient_device, kind='linear')
+        K_product=K_product*interp_func(freqs)
+    calibration_curve=1/K_product**2/4/R_osc**2/(LO_power*1e-3)
+    return calibration_curve
+
+
+
+def create_calibration_curve_old(file_name, current_LO_power_in_mW,N_points,dt,win_time,overlap_time=0,current_transmission_in_system=1):
         
      freqs, _,_=scipy.signal.spectrogram(
         np.zeros(N_points),
         1/dt,
-        nperseg=int(win_time/dt), # to math the number of points with difinition in 'create_spectrogram_from_data'
+        nperseg=int(win_time/dt), # to match the number of points with difinition in 'create_spectrogram_from_data'
         noverlap=int(overlap_time/dt))
      
      with open(file_name,'r') as f:
@@ -805,37 +830,40 @@ if __name__=='__main__':
     average_freq_window=10e6
     average_time_window=5e-6
     
-    file=r"F:\Equipment\2023.09.07 testing heterodyning signal for diff freqs\example 30mW.trace"
+    file=r"\\?\F:\!Projects\!Rayleigh lasers - localisation, heterodyne, coherent detection\2023-2022 different fibers and different data\SMF-28 32 km\2023.04.03 Testing mode width at different wavelengths\raw data\wavelength=1550.35 pump=299 triggered=4 LO only 14 dBm.trace"
     with open(file,'rb') as f:
         trace=pickle.load(f)
+    
     sp1=create_spectrogram_from_data(trace.data, trace.xinc,high_cut_off=700e6,win_time=win_time,
-                                     IsAveraging=IsAveraging,average_freq_window=average_freq_window,average_time_window=average_time_window)
+                                     IsAveraging=IsAveraging,average_freq_window=average_freq_window,average_time_window=average_time_window,calibration_curve=None)
     sp1.plot_spectrogram()
     sp1.find_modes()
     sp1.print_all_modes()
     
+    plt.figure()
+    plt.plot(trace.data)
     
-    win_time=4e-6
-    # IsAveraging=False
-    IsAveraging=True
-    average_freq_window=5e6
-    average_time_window=5e-6
+    # win_time=4e-6
+    # # IsAveraging=False
+    # IsAveraging=True
+    # average_freq_window=5e6
+    # average_time_window=5e-6
     
-    file2=r"F:\Equipment\2023.09.07 testing heterodyning signal for diff freqs\example 3mW.trace"
-    with open(file2,'rb') as f:
-        trace2=pickle.load(f)
-    sp2=create_spectrogram_from_data(trace2.data, trace2.xinc,high_cut_off=700e6,win_time=win_time,
-                                     IsAveraging=IsAveraging,average_freq_window=average_freq_window,average_time_window=average_time_window)
-    sp2.plot_spectrogram()
-    sp2.find_modes()
-    sp2.print_all_modes()
+    # file2=r"F:\Equipment\2023.09.07 testing heterodyning signal for diff freqs\example 3mW.trace"
+    # with open(file2,'rb') as f:
+    #     trace2=pickle.load(f)
+    # sp2=create_spectrogram_from_data(trace2.data, trace2.xinc,high_cut_off=700e6,win_time=win_time,
+    #                                  IsAveraging=IsAveraging,average_freq_window=average_freq_window,average_time_window=average_time_window)
+    # sp2.plot_spectrogram()
+    # sp2.find_modes()
+    # sp2.print_all_modes()
     
     
-    file2=r"F:\Equipment\2023.09.07 testing heterodyning signal for diff freqs\example 2mW.trace"
-    with open(file2,'rb') as f:
-        trace2=pickle.load(f)
-    sp2=create_spectrogram_from_data(trace2.data, trace2.xinc,high_cut_off=700e6,win_time=win_time,
-                                     IsAveraging=IsAveraging,average_freq_window=average_freq_window,average_time_window=average_time_window)
-    sp2.plot_spectrogram()
-    sp2.find_modes()
-    sp2.print_all_modes()
+    # file2=r"F:\Equipment\2023.09.07 testing heterodyning signal for diff freqs\example 2mW.trace"
+    # with open(file2,'rb') as f:
+    #     trace2=pickle.load(f)
+    # sp2=create_spectrogram_from_data(trace2.data, trace2.xinc,high_cut_off=700e6,win_time=win_time,
+    #                                  IsAveraging=IsAveraging,average_freq_window=average_freq_window,average_time_window=average_time_window)
+    # sp2.plot_spectrogram()
+    # sp2.find_modes()
+    # sp2.print_all_modes()

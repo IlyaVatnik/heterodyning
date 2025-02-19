@@ -84,6 +84,14 @@ def create_list_of_simult_brillouin_modes(modes1,modes2,detuning,stokes_number=1
                 new_list.append(l)
     return new_list
 
+def compute_correlation(dynamics1,dynamics2,dt):
+    correlation=signal.correlate(dynamics1,dynamics2)
+    correlation /= np.sqrt(np.sum(np.abs(dynamics1)**2)*np.sum(np.abs(dynamics2)**2))
+    correlation_lags=signal.correlation_lags(len(dynamics1),len(dynamics2))
+    correlation_lags=correlation_lags*(dt)
+    return correlation_lags,correlation
+    
+
 def get_correlation_time(spec1,spec2,detuning,stokes_number,
                          mode_index_1, mode_index_2,mode1_birth_time_index,plot=True,
                          span=5e-3):

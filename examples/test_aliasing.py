@@ -24,13 +24,18 @@ signal[3*len(signal)//4:]=0
 
 
 win_time=3e-6
+overlap_time=win_time-1e-9
+
 IsAveraging=False
+
 # IsAveraging=True
 average_freq_window=5e6
 average_time_window=5e-6
 
-spec=create_spectrogram_from_data(signal,xinc,IsAveraging=IsAveraging,win_time=win_time,average_freq_window=average_freq_window,average_time_window=average_time_window,
-                                    real_power_coeff=0,high_cut_off=4e9,low_cut_off=50e6)
+spec=create_spectrogram_from_data(signal,xinc,IsAveraging=IsAveraging,win_time=win_time,
+                                  overlap_time=overlap_time,
+                                  average_freq_window=average_freq_window,average_time_window=average_time_window,
+                                  real_power_coeff=0,high_cut_off=4e9,low_cut_off=50e6)
 
 
 spec.plot_spectrogram()
