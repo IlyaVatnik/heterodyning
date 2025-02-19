@@ -134,7 +134,7 @@ def create_calibration_curve(device_calibration_file_names, LO_power,R_osc,
     R_osc - in Om
     '''
     freqs, _,_=scipy.signal.spectrogram(
-        np.zeros(int(win_time/dt)*2),
+        np.zeros(int(win_time/dt)*10),
         1/dt,
         nperseg=int(win_time/dt), # to match the number of points with difinition in 'create_spectrogram_from_data'
         noverlap=0)
@@ -150,29 +150,7 @@ def create_calibration_curve(device_calibration_file_names, LO_power,R_osc,
 
 
 
-def create_calibration_curve_old(file_name, current_LO_power_in_mW,N_points,dt,win_time,overlap_time=0,current_transmission_in_system=1):
-        
-     freqs, _,_=scipy.signal.spectrogram(
-        np.zeros(N_points),
-        1/dt,
-        nperseg=int(win_time/dt), # to match the number of points with difinition in 'create_spectrogram_from_data'
-        noverlap=int(overlap_time/dt))
-     
-     with open(file_name,'r') as f:
-         header = f.readline()
-     print('Calibration notes: '+header)
-     try:
-         import re
-         LO_power_in_file=float(re.search('LO (.*) mW', file_name).group(1))
-     except Exception as e:
-         print(e)
-         print('No LO_power indicated in file name')
-         
-     [freqs_in_file,curve]=np.loadtxt(file_name)
-     curve=curve*LO_power_in_file/current_LO_power_in_mW/current_transmission_in_system
-     curve_interpolated=np.interp(freqs,freqs_in_file,curve)
-     return curve_interpolated.reshape(-1,1)
-     
+    
 
 class Mode():
     def __init__(self,ind,freq,power=None,power_dynamics=None):
