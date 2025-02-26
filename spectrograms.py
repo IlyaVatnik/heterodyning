@@ -11,8 +11,8 @@ Created on Thu Oct  1 11:37:33 2020
 
 @author: ilyav
 """
-__version__='5'
-__date__='2025.02.19'
+__version__='5.2'
+__date__='2025.02.26'
 
 from matplotlib import pyplot as plt
 from matplotlib.ticker import EngFormatter
@@ -113,10 +113,10 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     
     s=Spectrogram(times,freqs, spec,params)
     if calibration_curve is not None:
-        s.spec*=calibration_curve*np.ones((np.shape(s.spec)))
+        s.spec/=calibration_curve.reshape((len(s.spec),1))*np.ones((np.shape(s.spec)))
         s.real_power_mode=True
     elif real_power_coeff!=0:
-        s.spec*=real_power_coeff
+        s.spec/=real_power_coeff
         s.real_power_mode=True
         
     if cut_off:
@@ -127,7 +127,7 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     
 
 def create_calibration_curve(device_calibration_file_names, LO_power,R_osc,
-                             dt,win_time,):
+                             dt,win_time):
     '''
     device_calibration_file_names=[device1_calibraion_file,device2_calibration_file,...]
     LO_power - in mW
@@ -138,14 +138,16 @@ def create_calibration_curve(device_calibration_file_names, LO_power,R_osc,
         1/dt,
         nperseg=int(win_time/dt), # to match the number of points with difinition in 'create_spectrogram_from_data'
         noverlap=0)
+    
     K_product=np.ones(len(freqs))
     for file in device_calibration_file_names:
-        data=np.genfromcsv(file)
+        data=np.genfromtxt(file,delimiter='\t',skip_header=2)
         freqs_device=data[:,0]
         Koefficient_device=data[:,1]
-        interp_func = interp1d(freqs_device, Koefficient_device, kind='linear')
+        
+        interp_func = interp1d(freqs_device*1e6, Koefficient_device, fill_value = "extrapolate")
         K_product=K_product*interp_func(freqs)
-    calibration_curve=1/K_product**2/4/R_osc**2/(LO_power*1e-3)
+    calibration_curve=(K_product**2*4*R_osc**2*(LO_power*1e-3))
     return calibration_curve
 
 
@@ -802,24 +804,57 @@ def get_mode_ratio(spec1:Spectrogram,spec2:Spectrogram,mode:Mode):
 if __name__=='__main__':
     
     
-    win_time=4e-6
-    # IsAveraging=False
-    IsAveraging=True
+    win_time=1e-6
+    IsAveraging=False
+    # IsAveraging=True
     average_freq_window=10e6
     average_time_window=5e-6
     
-    file=r"\\?\F:\!Projects\!Rayleigh lasers - localisation, heterodyne, coherent detection\2023-2022 different fibers and different data\SMF-28 32 km\2023.04.03 Testing mode width at different wavelengths\raw data\wavelength=1550.35 pump=299 triggered=4 LO only 14 dBm.trace"
+    # file=r"\\?\F:\!Projects\!Rayleigh lasers - localisation, heterodyne, coherent detection\2023-2022 different fibers and different data\SMF-28 32 km\2023.04.03 Testing mode width at different wavelengths\raw data\wavelength=1550.35 pump=299 triggered=4 LO only 14 dBm.trace"
+    # with open(file,'rb') as f:
+    #     trace=pickle.load(f)
+    # sp1=create_spectrogram_from_data(trace.data, trace.xinc,high_cut_off=700e6,win_time=win_time,
+                                      # IsAveraging=IsAveraging,average_freq_window=average_freq_window,average_time_window=average_time_window,calibration_curve=None)
+    
+    
+    '''
+    '''
+    # dt=1e-9
+    # amplitude_trace=10*np.sin(2*np.pi*200e6*np.arange(0,0.1e-3,dt))
+    # calibration_curve=None
+    # sp1=create_spectrogram_from_data(amplitude_trace, dt,high_cut_off=210e6,low_cut_off=190e6,
+    #                                  win_time=win_time,
+    #                                  IsAveraging=IsAveraging,average_freq_window=average_freq_window,average_time_window=average_time_window,
+    #                                  calibration_curve=calibration_curve)
+    
+    
+    '''
+    '''
+    file=r"F:\!Projects\!Rayleigh lasers - localisation, heterodyne, coherent detection\2025.02 calibration of the system\test.trace_1350_1300"
     with open(file,'rb') as f:
         trace=pickle.load(f)
+    LO_power=2 
+    R_osc=50
+    plt.figure()
+    plt.plot(trace.data)
+    calibration_curve=create_calibration_curve([r"F:\!Projects\!Rayleigh lasers - localisation, heterodyne, coherent detection\heterodyning\Hardware\calibrations\InGaAs_Balanced_Photorecelver_PNKY_BPRM_20G_I_FA_SN221731255.txt",
+                                                r"F:\!Projects\!Rayleigh lasers - localisation, heterodyne, coherent detection\heterodyning\Hardware\calibrations\Rigol MSO8104 50 Om.txt"], LO_power, R_osc, trace.xinc, win_time)
+    sp1=create_spectrogram_from_data(trace.data, trace.xinc,high_cut_off=9000e6,win_time=win_time,
+                                           IsAveraging=IsAveraging,average_freq_window=average_freq_window,average_time_window=average_time_window,
+                                           calibration_curve=calibration_curve)
     
-    sp1=create_spectrogram_from_data(trace.data, trace.xinc,high_cut_off=700e6,win_time=win_time,
-                                     IsAveraging=IsAveraging,average_freq_window=average_freq_window,average_time_window=average_time_window,calibration_curve=None)
+  
+    '''
+    '''
+    
+    
+    
     sp1.plot_spectrogram()
     sp1.find_modes()
     sp1.print_all_modes()
+    sp1.plot_instant_spectrum(0,scale='log')
     
-    plt.figure()
-    plt.plot(trace.data)
+    
     
     # win_time=4e-6
     # # IsAveraging=False
