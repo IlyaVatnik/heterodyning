@@ -12,19 +12,16 @@ from heterodyning import study_correlations
 
 sampling_rate=2e9 # GS/s
 
-
-signal_frequency=1.2e9 #GHz
+amplitude=10
+signal_frequency=0.5e9 #GHz
 signal_duration=10e-6
 
 xinc=1/sampling_rate 
-signal=np.sin(2*np.pi*signal_frequency*np.arange(0,signal_duration,xinc))
-
-signal[:len(signal)//4]=0
-signal[3*len(signal)//4:]=0
+signal=amplitude*np.sin(2*np.pi*signal_frequency*np.arange(0,signal_duration,xinc))
 
 
 win_time=3e-6
-overlap_time=win_time-1e-9
+overlap_time=0
 
 IsAveraging=False
 

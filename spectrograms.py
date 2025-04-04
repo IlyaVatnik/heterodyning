@@ -11,8 +11,8 @@ Created on Thu Oct  1 11:37:33 2020
 
 @author: ilyav
 """
-__version__='5.2'
-__date__='2025.02.26'
+__version__='5.3'
+__date__='2025.04.01'
 
 from matplotlib import pyplot as plt
 from matplotlib.ticker import EngFormatter
@@ -35,8 +35,8 @@ def create_spectrogram_from_data(amplitude_trace,dt,
                                  win_time=1e-6,
                                  overlap_time=0,
                                  IsAveraging=False,
-                                 average_time_window=10e-6 ,    
-                                 average_freq_window=5e6,
+                                 average_time_window=0.1e-6 ,    
+                                 average_freq_window=10e6,
                                  window='hamming',
                                  cut_off=True,
                                  low_cut_off=00e6,
@@ -126,8 +126,7 @@ def create_spectrogram_from_data(amplitude_trace,dt,
     return s
     
 
-def create_calibration_curve(device_calibration_file_names, LO_power,R_osc,
-                             dt,win_time):
+def create_calibration_curve(device_calibration_file_names, LO_power,dt,win_time,R_osc=50,balanced=True):
     '''
     device_calibration_file_names=[device1_calibraion_file,device2_calibration_file,...]
     LO_power - in mW
@@ -147,7 +146,10 @@ def create_calibration_curve(device_calibration_file_names, LO_power,R_osc,
         
         interp_func = interp1d(freqs_device*1e6, Koefficient_device, fill_value = "extrapolate")
         K_product=K_product*interp_func(freqs)
-    calibration_curve=(K_product**2*4*R_osc**2*(LO_power*1e-3))
+    if balanced:
+        calibration_curve=(K_product**2*2*R_osc**2*(LO_power*1e-3))
+    else:
+        calibration_curve=(K_product**2*R_osc**2*(LO_power*1e-3))
     return calibration_curve
 
 
@@ -650,6 +652,12 @@ class Spectrogram():
             plt.ylabel('Number of modes')       
             plt.gca().xaxis.set_major_formatter(formatter1)    
         return life_times
+    
+    def get_mode_snaking(self):
+        indexes_maxima=np.argmax(self.spec,axis=0)
+        powers=self.spec[indexes_maxima,np.arange(self.spec.shape[1])]
+        freqs=self.freqs[indexes_maxima]
+        return self.times,freqs, powers
     
     
     def save_to_file(self,file,as_object=False):
