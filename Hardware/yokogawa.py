@@ -38,8 +38,14 @@ class Yokogawa:
         self.clear()
         self.resource.write_raw(':INITiate:IMMediate')
         self.query_string('*OPC?')
+        
+    def wait(self):
+        return self.resource.write_raw('*WAI')
     
     def query_trace(self):
+        '''
+        wavelengths in m!
+        '''
         self.resource.write_raw(':FORMat:DATA ASCii')
         wl = np.array(self.query_string(':TRACe:X? TRA').split(b','), dtype = 'f')
         amp = np.array(self.query_string(':TRACe:Y? TRA').split(b','), dtype = 'f')
@@ -63,6 +69,46 @@ class Yokogawa:
         
     def start_measurements(self):
         self.resource.write_raw(':INITiate:IMMediate')
+        
+    def set_input_trigger_state(self,trigger):
+        '''
+        OFF:  External Trigger OFF
+        ON:  External trigger mode
+        PHOLd:  Peak hold mode
+        GATE: Gate sampling
+        '''
+        res=self.resource.write_raw(':TRIGger:STATe {}'.format(trigger))
+        
+ 
+    def get_input_trigger_state(self):
+        '''
+        OFF:  External Trigger OFF
+        ON:  External trigger mode
+        PHOLd:  Peak hold mode
+        GATE: Gate sampling
+        Response 0 = OFF, 1 = ON, 2 = PHOLd, 3 = GATE
+        '''
+        trigger_state=self.query_string(':TRIGger:STATe?')
+        return trigger_state
+    
+    
+    def set_input_trigger_type(self,trigger):
+        '''
+        TRigger|0: Sampling trigger
+        STRigger|1: Sweep trigger
+        SENable|2: Sample enable
+        '''
+        res=self.resource.write_raw(':TRIGger:INPUT {}'.format(trigger)) 
+        self.query_string('*OPC?')
+    
+    def get_input_trigger_type(self):
+        '''
+        TRigger|0: Sampling trigger
+        STRigger|1: Sweep trigger
+        SENable|2: Sample enable
+        '''
+        trigger_state=self.query_string(':TRIGger:INPUT?')
+        return trigger_state
         
         
     def set_sensitivity(self,sens:str):

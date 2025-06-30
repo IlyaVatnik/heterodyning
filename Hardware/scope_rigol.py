@@ -15,13 +15,14 @@ from sys import stdout
 
 #'WINDOWS-E76DLEM'
 
-__version__='2'
-__date__='2023.08.29'
+__version__='2.2'
+__date__='2025.06.25'
 
 class Wave:
-    def __init__(self, datA, xinC):
+    def __init__(self, datA, xinC,xorigin=0):
         self.data = datA
         self.xinc = xinC
+        self.xorigin = xorigin
         
 
 class Scope:
@@ -142,7 +143,7 @@ class Scope:
         # wave = ((np.frombuffer(raw, dtype = np.uint8)).astype(np.int16) - int(y_reference)) * origins[2] + origins[3]
         wave = (raw - int(y_origin)-int(y_reference)) * origins[2]
         print('Got signal with length of {}'.format(len(wave)))
-        return Wave(wave,origins[0])
+        return Wave(wave,origins[0],origins[1])
     
     """
     def set_acquisition_type(self, typ = 'NORMal'):
@@ -317,6 +318,18 @@ class Scope:
                 time.sleep(sleep_step)
         else:
             raise RuntimeError('Acquisition timeout')
+            
+    def run(self):
+        self.resource.write_raw(b':RUN')
+        return
+    
+    def wait(self):
+        return self.resource.write_raw('*WAI')
+    
+    def stop(self):
+        self.resource.write_raw(b':STOP')
+        self.query_string('*OPC?')
+        return
     
     def acquire_and_return(self,ch_num):
         self.acquire()

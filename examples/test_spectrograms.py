@@ -19,7 +19,7 @@ scope.macro_setup(trace_points=8e6, # Кол-во точек для график
 
 #%%
 pump = keopsys.Keopsys('10.2.60.244')
-LO = itla.PPCL550(3)  # USB-порт подключения локального лазера
+LO1 = itla.PPCL550(4)  # USB-порт подключения локального лазера
 
 # osa = yokogawa.Yokogawa(timeout=1e7)
 # osa.acquire()
@@ -36,13 +36,13 @@ folder='spectrogram_examples\\'
 file_name='wavelength={} pump={} '.format(wavelength*1e9,pump_power)
 
 #%%
-LO.off()
-LO.set_wavelength(wavelength)
-LO.set_power(LO_power)
-LO.on()
+LO1.off()
+LO1.set_wavelength(wavelength)
+LO1.set_power(LO_power)
+LO1.on()
 # LO.mode('no dither')
-LO.mode('whisper')
-LO.set_FTFrequency(0e6)
+LO1.mode('whisper')
+LO1.set_FTFrequency(0e6)
 
 pump.APCon()
 
@@ -51,7 +51,7 @@ osa = APEX_OSA_with_additional_features('10.2.60.25')
 osa.SetScaleXUnit(ScaleXUnit=1)
 osa.change_range(1553.0,1555.0) # разрешение
 osa.SetWavelengthResolution('low')
-
+#%%
 [x, y]=osa.acquire_spectrum()
 plt.plot(x,y)
 #%%
@@ -129,7 +129,7 @@ spec1.print_all_modes()
 #         print('mode at {:.0f} MHz, phi1={:.3f}, Ratio1={:.2f},'.format(m.freq/1e6,phi1,Ratio1))
 
 #%%
-LO.off()
+LO1.off()
 pump.APCoff()
 
 #%%
