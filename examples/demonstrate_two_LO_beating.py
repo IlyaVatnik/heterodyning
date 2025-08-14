@@ -30,7 +30,7 @@ scope.macro_setup(channels_displayed=(4,),
                   trigger_channel=trigger_channel)
 
 #%%
-LO1 = itla.PPCL550(3) # new 
+LO1 = itla.PPCL550(6) # new 
 LO2 = itla.PPCL550(4) # old
 # osa = yokogawa.Yokogawa(timeout=1e7)
     # osa.acquire()
@@ -38,7 +38,7 @@ LO2 = itla.PPCL550(4) # old
 #%%
 wavelength1= 1550.000e-9 # in m 
 wavelength2=1550.000e-9 # in m
-LO1_power=1500 # in 0.01 dBm
+LO1_power=1000 # in 0.01 dBm
 LO2_power=1500 # in 0.01 dBm
 
 
