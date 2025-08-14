@@ -98,3 +98,11 @@ class scope():
 
 	def get_osc(self):
 		return self.get_waveform()
+    #%%
+if __name__ == '__main__':
+    sc=scope('10.2.60.150')
+    [t,s]=sc.get_waveform()
+    import matplotlib.pyplot as plt
+    plt.figure()
+    print(len(t))
+    plt.plot(t,s)

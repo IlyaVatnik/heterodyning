@@ -42,13 +42,13 @@ class Yokogawa:
     def wait(self):
         return self.resource.write_raw('*WAI')
     
-    def query_trace(self):
+    def query_trace(self, trace='A'):
         '''
         wavelengths in m!
         '''
         self.resource.write_raw(':FORMat:DATA ASCii')
-        wl = np.array(self.query_string(':TRACe:X? TRA').split(b','), dtype = 'f')
-        amp = np.array(self.query_string(':TRACe:Y? TRA').split(b','), dtype = 'f')
+        wl = np.array(self.query_string((':TRACe:X? TR{}').format(trace)).split(b','), dtype = 'f')
+        amp = np.array(self.query_string((':TRACe:Y? TR{}').format(trace)).split(b','), dtype = 'f')
         return wl, amp
     
     def set_trace_mode(self, ch='A',type_of_meas='WRITE'):
