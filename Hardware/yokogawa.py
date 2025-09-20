@@ -10,8 +10,8 @@ import numpy as np
 import time
 from sys import stdout
 
-__version__='2'
-__date__='2023.03.16'
+__version__='3.1'
+__date__='2025.09.20'
 
 class Yokogawa:
     
@@ -44,12 +44,12 @@ class Yokogawa:
     
     def query_trace(self, trace='A'):
         '''
-        wavelengths in m!
+        return wavelengths in nm!
         '''
         self.resource.write_raw(':FORMat:DATA ASCii')
         wl = np.array(self.query_string((':TRACe:X? TR{}').format(trace)).split(b','), dtype = 'f')
         amp = np.array(self.query_string((':TRACe:Y? TR{}').format(trace)).split(b','), dtype = 'f')
-        return wl, amp
+        return wl*1e9, amp
     
     def set_trace_mode(self, ch='A',type_of_meas='WRITE'):
         res=self.resource.write_raw(':TRACe:ATTRibute:TR{} {}'.format(ch,type_of_meas))
@@ -132,6 +132,13 @@ class Yokogawa:
         if stop_wavelength is not None:
             Command = ':SENSe:WAVelength:STOP '+f'{stop_wavelength:.3f}'+'NM\n'
             self.resource.write_raw(Command)
+            
+    def set_sampling_point(self,N_points):
+        if  N_points==0:
+            Command = ':SENSe:SWEep:POINts:AUTO ON'
+        else:
+            Command = ':SENSe:SWEep:POINts '+f'{N_points:d}'
+        self.resource.write_raw(Command)
     
     #%%
 if __name__ == '__main__':

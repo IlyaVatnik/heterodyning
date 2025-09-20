@@ -1,0 +1,5 @@
+from heterodyning.processing.process_spectra_yokogawa import process_spectra_from_folder
+
+
+folder='data'
+process_spectra_from_folder(folder)
