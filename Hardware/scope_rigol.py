@@ -15,8 +15,8 @@ from sys import stdout
 
 #'WINDOWS-E76DLEM'
 
-__version__='2.2'
-__date__='2025.06.25'
+__version__='2.3'
+__date__='2025.09.22'
 
 class Wave:
     def __init__(self, datA, xinC,xorigin=0):
@@ -62,7 +62,7 @@ class Scope:
         Needs to be  later
         """
         
-        self.trigger=trigger
+    
         
         remaining = {1,2,3,4}
         for number in channels_displayed:
@@ -81,7 +81,13 @@ class Scope:
         self.set_timescale(acq_time/10)
         self.set_memory_depth(trace_points)
         self.clear()
+        
+        self.trigger=trigger
+        self.set_trigger_mode(trigger)
+        
         self.acquire()
+        
+        
         
         print('Sampling rate is {} MS/s'.format(self.get_sampling_rate()/1e6))
         print('Memory depth is {:.3e} S'.format(self.get_memory_depth()))
@@ -122,18 +128,19 @@ class Scope:
         return self.resource.read_raw()[:-1]
         
     def query_wave_fast(self):
-        self.resource.write_raw(b":WAVeform:PREamble?")
+        result=self.resource.write_raw(b":WAVeform:PREamble?")
         preamble = self.resource.read_raw()
         (wav_form, acq_type, wfmpts, avgcnt, x_increment, x_origin,
          x_reference, y_increment, y_origin, y_reference) = preamble.split(b",")
         # print(preamble)
-        self.resource.write_raw(b"WAVeform:STARt 1")
+        
+        result=self.resource.write_raw(b"WAVeform:STARt 1")
         self.resource.write_raw(bytes("WAVeform:STOP {}".format(int(wfmpts)), encoding = 'utf8'))
         origins = np.array(list(map(float,(x_increment, x_origin, y_increment, y_origin))))#, dtype = 'float')
         
         
         # print(origins,int(y_reference))
-        self.resource.write_raw(b':WAVeform:DATA?')
+        result=self.resource.write_raw(b':WAVeform:DATA?')
         raw = self.resource.read_raw()[11:-1]
         raw=(np.frombuffer(raw, dtype = np.uint8)).astype(np.int16)
         # print(raw)
@@ -174,6 +181,27 @@ class Scope:
     def set_wfm_mode(self, mode = 'RAW'):
         self.resource.write_raw(bytes(':WAVeform:MODE {}'.format(mode), encoding = 'utf8'))
     
+    
+    def set_trigger_mode(self, trigger_mode):
+        '''
+        AUTO|NORMal|SINGle
+        '''
+        self.resource.write_raw(bytes(':TRIGger:SWEep {}'.format(trigger_mode), encoding = 'utf8'))
+    
+    def get_trigger_mode(self):
+        '''
+        AUTO|NORMal|SINGle
+        '''
+        return str(self.query_string(':TRIGger:SWEep?').decode('utf-8'))
+        
+    
+    def set_trigger_source(self, source:str):
+        '''
+        source D0|D1|D2|D3|D4|D5|D6|D7|D8|D9|D10|D11|D12|D13|D14|D15|CHANnel1|CHANnel2|CHANnel3|CHANnel4|ACLine|EXT
+        '''
+        self.resource.write_raw(bytes(':TRIGger:EDGE:SOURce {}'.format(source), encoding = 'utf8'))
+        return 
+
     def get_trigger_high_level(self):
         return float(self.query_string(':TRIGger:SLOPe:ALEVel?'))
     
@@ -202,6 +230,8 @@ class Scope:
     
     def get_channel_offset(self,ch_num):
         return float(self.query_string(':CHANnel{}:OFFSet?'.format(ch_num)))
+    
+
     
     def set_memory_depth(self, depth = 'AUTO'):
         if depth == 'AUTO':
@@ -253,6 +283,10 @@ class Scope:
         
     def get_timescale(self):
         return  float(self.query_string(':TIMebase:MAIN:SCALe?'))
+    
+    def set_delay(self,delay_time):
+        self.resource.write_raw(bytes(':TIMebase:DELay:ENABLe TRUE', encoding = 'utf8'))
+        self.resource.write_raw(bytes(':TIMebase:DELay:ENABLe TRUE', encoding = 'utf8'))
     
     def get_sampling_rate(self):
         return  int(float(self.query_string(':ACQuire:SRATe?')))
@@ -323,8 +357,16 @@ class Scope:
         self.resource.write_raw(b':RUN')
         return
     
+    # def wait(self):
+    #     return self.resource.write_raw('*WAI')
+    
     def wait(self):
-        return self.resource.write_raw('*WAI')
+        self.resource.write_raw(b':*CLS')
+        complete = int(self.query_string('*OPC?').decode('utf-8'))
+        while complete != '1':
+            time.sleep(0.05)
+            complete = str(self.query_string('*OPC?').decode('utf-8'))
+        
     
     def stop(self):
         self.resource.write_raw(b':STOP')

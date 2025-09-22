@@ -10,8 +10,8 @@ import numpy as np
 import time
 from sys import stdout
 
-__version__='3.1'
-__date__='2025.09.20'
+__version__='3.2'
+__date__='2025.09.22'
 
 class Yokogawa:
     
@@ -139,7 +139,25 @@ class Yokogawa:
         else:
             Command = ':SENSe:SWEep:POINts '+f'{N_points:d}'
         self.resource.write_raw(Command)
+        
+    def get_sampling_point(self):
+        N_points=self.query_string(':SENSe:SWEep:POINts?')
+        return int(N_points)
     
+    def set_resolution(self,resolution):
+        '''
+        set in nm
+        '''
+        Command=':SENSe:BANDwidth:RESolution '+f'{resolution}NM'
+        self.resource.write_raw(Command)
+    
+    def get_resolution(self):
+        '''
+        return resolution in nm
+        '''
+        resolution=self.query_string(':SENSe:BANDwidth:RESolution?')
+        return float(resolution)*1e9
+        
     #%%
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
