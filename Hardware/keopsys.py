@@ -11,7 +11,7 @@ import requests
 
 
 class Keopsys:
-    def __init__(self, host='10.2.60.227'):
+    def __init__(self, host='10.2.60.244'):
         self.command_url = 'http://' + host + '/cgi/sendrs232Direct.cgi'
         self.mode='power'
         

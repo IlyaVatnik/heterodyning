@@ -15,8 +15,8 @@ from sys import stdout
 
 #'WINDOWS-E76DLEM'
 
-__version__='2.3'
-__date__='2025.09.22'
+__version__='2.4'
+__date__='2025.09.23'
 
 class Wave:
     def __init__(self, datA, xinC,xorigin=0):
@@ -70,7 +70,8 @@ class Scope:
             self.set_channel_on(number)
         for number in remaining:
               self.set_channel_off(number)
-            
+          
+        
         for key in channels_coupling.keys():
             self.set_channel_coupling(key,channels_coupling[key])
             
@@ -207,6 +208,33 @@ class Scope:
     
     def set_trigger_high_level(self,level):
         self.resource.write_raw(bytes(':TRIGger:SLOPe:ALEVel {}'.format(level), encoding = 'utf8'))
+        
+    def check_trigger_status(self):
+        """
+        Проверяет статус триггера осциллографа
+        Возвращает: 'TD' (ждущий), 'RUN' (захват), 'STOP' (остановлен), 'AUTO' (авто)
+        """
+        status = self.query_string(':TRIG:STAT?').decode('utf-8')
+        return status.strip()
+    
+    def wait_for_trigger_status(self, status='STOP',timeout=2):
+        """
+        Ожидает срабатывания триггера с таймаутом
+        """
+        start_time = time.time()
+        
+        # print("Ожидание триггера...")
+        while time.time() - start_time < timeout:
+            current_status = self.check_trigger_status()
+            # print(current_status)
+            if current_status == status :
+                # Триггер еще не сработал - ожидание
+                # print("Статус: Ожидание триггера...")
+                return True
+            else:
+                time.sleep(0.01)
+        return False
+
 
     
     def get_wfm_mode(self):
@@ -370,8 +398,8 @@ class Scope:
     
     def stop(self):
         self.resource.write_raw(b':STOP')
-        self.query_string('*OPC?')
-        return
+        result=self.query_string('*OPC?')
+        return result
     
     def acquire_and_return(self,ch_num):
         self.acquire()
