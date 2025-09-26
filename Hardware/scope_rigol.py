@@ -251,7 +251,11 @@ class Scope:
     
     def set_channel_scale(self,ch_num,scale):
         self.resource.write_raw(bytes(':CHANnel{}:SCALe '.format(ch_num)+'{}'.format(scale), encoding = 'utf8'))
+    
+    def get_channel_scale(self,ch_num):
+        return float(self.query_string(':CHANnel{}:SCALe?'.format(ch_num)))
  
+    
     
     def set_channel_offset(self,ch_num,offset):
         self.resource.write_raw(bytes(':CHANnel{}:OFFSet '.format(ch_num)+'{}'.format(offset), encoding = 'utf8'))

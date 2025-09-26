@@ -46,7 +46,8 @@ class PowerMeter():
         return power
     
 if __name__=='__main__':
-    PM=PowerMeter('P0015055')
+    # PM=PowerMeter('P0015055')
+    PM=PowerMeter('P0033636')
     print(PM.get_power())
     
     
