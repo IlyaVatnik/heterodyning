@@ -10,8 +10,8 @@ import numpy as np
 import time
 from sys import stdout
 
-__version__='3.2'
-__date__='2025.09.22'
+__version__='3.3'
+__date__='2025.09.29'
 
 class Yokogawa:
     
@@ -42,6 +42,30 @@ class Yokogawa:
     def wait(self):
         return self.resource.write_raw('*WAI')
     
+    def set_warning_params(self,display=True, sound=True):
+        '''
+        UNCAL WARNING  DISPLAY Displays UNCAL and warning.
+        BUZZER WARNING  Turns the warning/error buzzerON/ OFF
+        '''
+        if display:
+            self.resource.write_raw(':SYSTem:DISPlay:UNCal ON')
+        else:
+            self.resource.write_raw(':SYSTem:DISPlay:UNCal OFF')
+        if sound:
+            self.resource.write_raw(':SYSTEM:BUZZER:WARNING ON')
+        else:
+            self.resource.write_raw(':SYSTEM:BUZZER:WARNING OFF')
+            
+                
+    def get_warning_params(self):
+        '''
+        UNCAL WARNING  DISPLAY Displays UNCAL and warning.
+        BUZZER WARNING  Turns the warning/error buzzerON/ OFF
+        '''
+        display=int((self.query_string(':SYSTem:DISPlay:UNCal?') ))
+        sound=int((self.query_string(':SYSTEM:BUZZER:WARNING?') ))
+        return display, sound
+        
     def query_trace(self, trace='A'):
         '''
         return wavelengths in nm!
@@ -123,6 +147,31 @@ class Yokogawa:
             HIGH3 = HIGH3 or HIGH3/CHOP
         '''
         self.resource.write_raw(':SENSe:SENSe {}'.format(sens))
+        
+                
+    def get_sensitivity(self):
+        '''
+        sens:
+            0 = NHLD
+            1 = NAUT
+            2 = MID
+            3 = HIGH1
+            4 = HIGH2
+            5 = HIGH3
+            6 = NORMAL
+        '''
+        sens_state=self.query_string(':SENSe:SENSe?')
+        return int(sens_state)
+        
+    
+    def set_display(self,state):
+        '''
+        :DISPlay[:WINDow]<wsp>OFF|ON|0|1
+        '''
+        if state==True:
+            self.resource.write_raw(':DISPlay ON')
+        else:
+            self.resource.write_raw(':DISPlay OFF')
         
         
     def set_span(self,start_wavelength=None,stop_wavelength=None):
