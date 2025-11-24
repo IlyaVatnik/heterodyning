@@ -20,7 +20,7 @@ formatter1 = EngFormatter()
 import matplotlib
 import numpy as np
 import scipy.signal
-import scipy.fft as fft
+import scipy.fft as fft 
 from scipy.interpolate import interp1d
 import bottleneck as bn
 import pickle
@@ -583,6 +583,10 @@ class Spectrogram():
         freq_index=np.argmin(abs((self.freqs-freq)))
         return self.times,self.spec[freq_index,:]
     
+
+            
+            
+    
     def plot_mode_dynamics(self,mode_number,NewFigure=True,show_lifespan=True):
         time,signal=self.get_mode_dynamics(mode_number)
         if NewFigure:
@@ -716,6 +720,9 @@ def get_power_spectrogram(f_name,win_time,overlap_time,channel=3):
                                               mode='psd')
     spec=np.rot90(spec)
     return freq,time,spec
+
+
+
     
 
 def average_spectrogram(spec:Spectrogram,average_freq_window=None,average_time_window=None):

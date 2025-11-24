@@ -1,10 +1,17 @@
+'''
+Coherent detection in the scheme with Optical Hybrid and balanced detection
+'''
+
 import numpy as np
 from scipy.optimize import minimize
 from scipy.fft import rfft, rfftfreq,irfft
+from scipy.signal import hilbert
 from matplotlib.ticker import EngFormatter
 formatter1 = EngFormatter()
 import matplotlib.pyplot as plt
 
+__version__='2'
+__date__='2025.11.21'
   
 def derive_dynamics(I,Q,time_step,delay=0,norm_coeff=1,
                     remove_linear_phase=True,detuning=None,
@@ -118,6 +125,19 @@ def plot_dynamics(times,Intensity,Phase):
     plt.tight_layout()
     plt.show()
     
+   
+def filter_signal(signal, xinc,mode_freq,
+                   mode_bandwidth=10e6,
+                   low_freqs_to_remain=100e6):
+    
+    freqs = rfftfreq(len(signal), xinc)
+    yf = rfft(signal)
+    yf[freqs>mode_freq+mode_bandwidth/2] = 0
+    yf[(freqs<mode_freq-mode_bandwidth/2) & (freqs>low_freqs_to_remain)] = 0
+    new_signal = irfft(yf)
+    return new_signal,xinc
+
+
     
 def filter_signals(signal1,signal2, xinc,mode_freq,
                    mode_bandwidth=10e6,
@@ -146,3 +166,35 @@ def filter_phase(phase, xinc, low_cut_off):
     yf[freqs<low_cut_off] = 0
     new_phase = irfft(yf)
     return new_phase
+
+
+def demodulate_dynamics(signal,xinc,freq):
+    '''
+    filter signal to preserve only quasi sin signal at some frequency and than demodulate its phase using Hilbert transform approach
+    freq = frquency at which we want to derive phase, in Hz
+    '''
+    
+    f_signal=filter_signal(signal, xinc, freq,mode_bandwidth=10e6,low_freqs_to_remain=0)
+    
+    # 1) Аналитический сигнал
+    z = hilbert(f_signal)
+
+    # 2) Фаза и амплитуда
+    phi = np.unwrap(np.angle(z))
+    amp = np.abs(z)
+
+    t = np.arange(len(f_signal)) *xinc
+
+    if freq is not None:
+        # Вычесть известную несущую: phi(t) = (общая фаза) - 2π f0 t
+        phi = phi - 2 * np.pi * freq * t
+    else:
+        # Оценить линейный тренд фазы (эффективная несущая) и вычесть
+        A = np.vstack([t, np.ones_like(t)]).T
+        k, b = np.linalg.lstsq(A, phi, rcond=None)[0]  # phi ≈ k t + b
+        phi = phi - (k * t + b)
+
+    return phi, amp
+
+    
+    
