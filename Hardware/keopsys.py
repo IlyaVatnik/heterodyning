@@ -37,6 +37,11 @@ class Keopsys:
         result= self.command('SOP={}'.format(pwr)) #dBm * 10
         print('Pump power is set to {}'.format(pwr))
         return result
+    
+    def get_power(self):
+        string=self.command('SOP?')
+        set_power=int(string.split('=')[1])
+        return set_power
 
     def set_current(self, c):
         return self.command('IC2={}'.format(c)) #dBm * 10

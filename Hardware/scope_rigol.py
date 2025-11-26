@@ -15,8 +15,8 @@ from sys import stdout
 
 #'WINDOWS-E76DLEM'
 
-__version__='2.4'
-__date__='2025.09.23'
+__version__='2.5'
+__date__='2025.11.24'
 
 class Wave:
     def __init__(self, datA, xinC,xorigin=0):
@@ -151,7 +151,7 @@ class Scope:
         # wave = ((np.frombuffer(raw, dtype = np.uint8)).astype(np.int16) - int(y_reference)) * origins[2] + origins[3]
         wave = (raw - int(y_origin)-int(y_reference)) * origins[2]
         print('Got signal with length of {}'.format(len(wave)))
-        return Wave(wave,origins[0],origins[1])
+        return wave,origins[0],origins[1]
     
     """
     def set_acquisition_type(self, typ = 'NORMal'):
@@ -410,9 +410,9 @@ class Scope:
         self.set_wfm_source(ch_num)
         N_points=0
         while N_points==0:
-            Wave=self.query_wave_fast()
-            N_points=len(Wave.data)
-        return Wave
+            wave,x_inc,x_origin=self.query_wave_fast()
+            N_points=len(wave)
+        return wave,x_inc,x_origin
         
     def get_data(self,ch_num):
         self.set_wfm_source(ch_num)

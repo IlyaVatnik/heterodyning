@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.signal import hilbert
 import matplotlib.pyplot as plt
+import heterodyning.coherent_detection as coh_det
 
 def phase_demod_hilbert(x, fs, f0=None, return_amp=False, detrend_carrier=True):
     """
@@ -58,7 +59,7 @@ def phase_demod_hilbert(x, fs, f0=None, return_amp=False, detrend_carrier=True):
 if __name__ == "__main__":
     fs = 10_000      # Гц
     f0 = 1000        # несущая, Гц
-    N = 10_000
+    N = 10_0000
     t = np.arange(N) / fs
 
     # Синус с фазовым скачком в моменте t = 0.5 c на +π/2
@@ -72,3 +73,6 @@ if __name__ == "__main__":
 
     # Теперь phi_est ≈ phi_true (с точностью до шума/краевых эффектов)
     plt.plot(phi_est)
+    
+    t,phase,_=coh_det.demodulate_dynamics(x, 1/fs, f0,mode_bandwidth=1e1)
+    plt.plot(phase)

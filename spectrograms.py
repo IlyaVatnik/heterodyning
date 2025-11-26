@@ -11,8 +11,8 @@ Created on Thu Oct  1 11:37:33 2020
 
 @author: ilyav
 """
-__version__='5.3'
-__date__='2025.04.01'
+__version__='5.4'
+__date__='2025.11.24'
 
 from matplotlib import pyplot as plt
 from matplotlib.ticker import EngFormatter
@@ -405,7 +405,7 @@ class Spectrogram():
         self.spec=self.spec[:ind]
         
         
-    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=4,height=None,min_freq_spacing=1e5,rel_height=0.99,plot_shrinked_spectrum=False):
+    def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=1,height=None,min_freq_spacing=1e5,rel_height=0.2,plot_shrinked_spectrum=False):
         self.modes=[]
         signal_shrinked=np.nanmax(self.spec,axis=1)
         dv=self.freqs[1]-self.freqs[0]
@@ -419,73 +419,75 @@ class Spectrogram():
             power=signal_shrinked[p]
             self.modes.append(Mode(p,self.freqs[p],power=power))
             signal=self.spec[p,:]
-            peak=np.nanargmax(signal)
-            temp=scipy.signal.find_peaks(signal, height=None,prominence=prominance_factor*np.mean(signal))#distance=self.average_freq_window/(1/2/self.dt/len(self.freqs)))
-            peak=temp[0]
-            # peaks,_=scipy.signal.find_peaks(signal, height=3*bn.nanstd(signal),width=average_factor_for_times,prominence=3*np.nanstd(signal))
-            try:
-                widths,width_heights,left_ips, right_ips=scipy.signal.peak_widths(signal,peak,rel_height=rel_height)
-                # print(self.times[int(left_ips)])
-                
-                indexes_sorted=np.argsort(left_ips)
-                left_ips=left_ips[indexes_sorted]
-                right_ips=right_ips[indexes_sorted]
-                segments=[[left_ips[i],right_ips[i]] for i in range(len(left_ips))]
-                '''
-                remove intervals that are the same 
-                '''
-                # plt.figure()
-                # y=0
-                # for number,s in enumerate(segments):
-                #     plt.plot([s[0],s[1]],[y,y],linewidth=4,label=number)
-                #     y+=1
-                # plt.legend()
+            # peak=np.nanargmax(signal)
+            # temp=scipy.signal.find_peaks(signal, height=None,prominence=prominance_factor*np.mean(signal))#distance=self.average_freq_window/(1/2/self.dt/len(self.freqs)))
+            # peak=temp[0]
+            peaks,_=scipy.signal.find_peaks(signal, height=bn.nanstd(signal),prominence=np.nanstd(signal))
+            if len(peaks)!=0:
+                try:
+                    widths,width_heights,left_ips, right_ips=scipy.signal.peak_widths(signal,peaks,rel_height=rel_height)
+                    # print(self.times[int(left_ips)])
                     
-                
-                def __remove_intesections(segments:list):
-                    for i in np.arange(1,len(segments)):
-                        if segments[i][0]<segments[i-1][1]:
-                            if segments[i][1]>segments[i-1][1]:
-                                segments[i-1][1]=segments[i][1]
-                            
-                            del segments[i]
-                            # segments=np.delete(segments,i)
-                            __remove_intesections(segments)
-                            break
-                    return segments
-                
-                segments=__remove_intesections(segments)    
-                
-                # plt.figure()
-                # y=0
-                # for number,s in enumerate(segments):
-                #     plt.plot([s[0],s[1]],[y,y],linewidth=4,label=number)
-                #     y+=1
-                # plt.legend()
+                    indexes_sorted=np.argsort(left_ips)
+                    left_ips=left_ips[indexes_sorted]
+                    right_ips=right_ips[indexes_sorted]
+                    segments=[[left_ips[i],right_ips[i]] for i in range(len(left_ips))]
+                    '''
+                    remove intervals that are the same 
+                    '''
+                    # plt.figure()
+                    # y=0
+                    # for number,s in enumerate(segments):
+                    #     plt.plot([s[0],s[1]],[y,y],linewidth=4,label=number)
+                    #     y+=1
+                    # plt.legend()
+                        
                     
-                # indexes_to_delete=[]
-                # for i in np.arange(1,len(left_ips)):
-                #     if left_ips[i]<right_ips[i-1]:
-                #         indexes_to_delete.append(i)
-                # left_ips=np.delete(left_ips,indexes_to_delete)
-                # right_ips=np.delete(right_ips,np.array(indexes_to_delete)-1)
+                    def __remove_intesections(segments:list):
+                        for i in np.arange(1,len(segments)):
+                            if segments[i][0]<segments[i-1][1]:
+                                if segments[i][1]>segments[i-1][1]:
+                                    segments[i-1][1]=segments[i][1]
+                                
+                                del segments[i]
+                                # segments=np.delete(segments,i)
+                                __remove_intesections(segments)
+                                break
+                        return segments
+                    
+                    segments=__remove_intesections(segments)    
+                    
+                    # plt.figure()
+                    # y=0
+                    # for number,s in enumerate(segments):
+                    #     plt.plot([s[0],s[1]],[y,y],linewidth=4,label=number)
+                    #     y+=1
+                    # plt.legend()
+                        
+                    # indexes_to_delete=[]
+                    # for i in np.arange(1,len(left_ips)):
+                    #     if left_ips[i]<right_ips[i-1]:
+                    #         indexes_to_delete.append(i)
+                    # left_ips=np.delete(left_ips,indexes_to_delete)
+                    # right_ips=np.delete(right_ips,np.array(indexes_to_delete)-1)
+                    
+                    self.modes[mode_number].birth_times=np.array([self.times[np.int32(s[0])] for s in segments])
+                    self.modes[mode_number].death_times=np.array([self.times[np.int32(s[1])] for s in segments])
+                    
+                    self.modes[mode_number].life_spans=[[self.modes[mode_number].birth_times[i],self.modes[mode_number].death_times[i]] for i in range(len(self.modes[mode_number].birth_times))]
+                    
+                    
+                    # self.modes[mode_number].birth_times=self.times[np.int32(left_ips)]
+                    # self.modes[mode_number].death_times=self.times[np.int32(right_ips)]
+                except RuntimeWarning as e:
+                    print(e, '; error while calculating mode life times')
+                    self.modes[mode_number].birth_times=np.array([self.times[0]])
+                    self.modes[mode_number].death_times=np.array([self.times[-1]])
                 
-                self.modes[mode_number].birth_times=np.array([self.times[np.int32(s[0])] for s in segments])
-                self.modes[mode_number].death_times=np.array([self.times[np.int32(s[1])] for s in segments])
-                
-                self.modes[mode_number].life_spans=[[self.modes[mode_number].birth_times[i],self.modes[mode_number].death_times[i]] for i in range(len(self.modes[mode_number].birth_times))]
-                
-                
-                # self.modes[mode_number].birth_times=self.times[np.int32(left_ips)]
-                # self.modes[mode_number].death_times=self.times[np.int32(right_ips)]
-                
-                
-                
-                
-                
-            except RuntimeWarning:
-                self.modes[mode_number].birth_times=[self.times[0]]
-                self.modes[mode_number].death_times=[self.times[-1]]
+            else:
+                self.modes[mode_number].birth_times=np.array([self.times[0]])
+                self.modes[mode_number].death_times=np.array([self.times[-1]])
+            
             self.modes[mode_number].life_time=np.sum(self.modes[mode_number].death_times-self.modes[mode_number].birth_times)
       
         if self.fig_spec is not None and indicate_modes_on_spectrogram:
@@ -496,6 +498,8 @@ class Spectrogram():
             loc=matplotlib.ticker.FixedLocator(extraticks)
             self.fig_spec.axes[0].yaxis.set_minor_locator(loc)
             self.fig_spec.axes[0].tick_params(which='minor', length=10, color='r',width=5)
+            for i,m in enumerate(self.modes):
+                plt.text(self.times[0]*0.9,m.freq,i,color='r')
             # plt.yticks(minor=True)
             # self.fig_spec.axes[0].axhline(self.freqs,color='yellow',linewidth=2)
             
@@ -720,6 +724,7 @@ def get_power_spectrogram(f_name,win_time,overlap_time,channel=3):
                                               mode='psd')
     spec=np.rot90(spec)
     return freq,time,spec
+
 
 
 

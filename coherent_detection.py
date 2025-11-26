@@ -135,7 +135,7 @@ def filter_signal(signal, xinc,mode_freq,
     yf[freqs>mode_freq+mode_bandwidth/2] = 0
     yf[(freqs<mode_freq-mode_bandwidth/2) & (freqs>low_freqs_to_remain)] = 0
     new_signal = irfft(yf)
-    return new_signal,xinc
+    return new_signal
 
 
     
@@ -168,33 +168,93 @@ def filter_phase(phase, xinc, low_cut_off):
     return new_phase
 
 
-def demodulate_dynamics(signal,xinc,freq):
+def demodulate_dynamics(signal,xinc,freq,mode_bandwidth=10e6, trend_linear_phase=False):
     '''
     filter signal to preserve only quasi sin signal at some frequency and than demodulate its phase using Hilbert transform approach
     freq = frquency at which we want to derive phase, in Hz
+    
+    
     '''
     
-    f_signal=filter_signal(signal, xinc, freq,mode_bandwidth=10e6,low_freqs_to_remain=0)
+    f_signal=filter_signal(signal, xinc, freq,mode_bandwidth=mode_bandwidth,low_freqs_to_remain=0)
     
     # 1) Аналитический сигнал
     z = hilbert(f_signal)
 
     # 2) Фаза и амплитуда
-    phi = np.unwrap(np.angle(z))
+    phi = np.unwrap(np.angle(z),discont=np.pi/2, period=np.pi)
     amp = np.abs(z)
 
     t = np.arange(len(f_signal)) *xinc
 
-    if freq is not None:
-        # Вычесть известную несущую: phi(t) = (общая фаза) - 2π f0 t
-        phi = phi - 2 * np.pi * freq * t
-    else:
-        # Оценить линейный тренд фазы (эффективная несущая) и вычесть
+    if trend_linear_phase:
+        
+    # Оценить линейный тренд фазы (эффективная несущая) и вычесть
         A = np.vstack([t, np.ones_like(t)]).T
         k, b = np.linalg.lstsq(A, phi, rcond=None)[0]  # phi ≈ k t + b
         phi = phi - (k * t + b)
 
-    return phi, amp
+        
+    elif freq is not None:
+        # Вычесть известную несущую: phi(t) = (общая фаза) - 2π f0 t
+        phi = phi - 2 * np.pi * freq * t
+
+    return t, phi, amp
+
+    
+def find_coexistence_intervals(mode1, mode2):
+    intersections = []
+
+    for i in range(len(mode1.birth_times)):
+        for j in range(len(mode2.birth_times)):
+            # Находим максимальное время рождения и минимальное время смерти для текущих промежутков
+            start = max(mode1.birth_times[i], mode2.birth_times[j])
+            end = min(mode1.death_times[i], mode2.death_times[j])
+            
+            # Проверяем, существует ли пересечение
+            if start < end:
+                intersections.append((start, end))
+
+    if not intersections:
+        raise ValueError("Ошибка: нет пересечений во времени существования мод")
+
+    return intersections
+
+def get_correlation_two_mode_phases(signal,xinc,spec, f1,f2):
+
+    mode_index=1
+    f1=spec.modes[mode_index-1].freq
+    f2=spec.modes[mode_index].freq
+    intersections=find_coexistence_intervals(spec.modes[mode_index-1], spec.modes[mode_index])
+    min_index=int(intersections[0][0]/xinc)
+    max_index=int(intersections[0][1]/xinc)
+    trace=trace_init[min_index:max_index]
+    
+    t1,phi1, amp1=coh_det.demodulate_dynamics(trace, xinc, f1,mode_bandwidth=4e6,trend_linear_phase=True)
+    t1+=intersections[0][0]
+    t2,phi2, amp2=coh_det.demodulate_dynamics(trace, xinc, f2,mode_bandwidth=4e6,trend_linear_phase=True)
+    t2+=intersections[0][0]
+    plt.figure()
+    plt.plot(t1,phi1,label='1')
+    plt.plot(t2,phi2,label='2')
+    plt.xlabel('Time, s')
+    plt.ylabel('Phase') 
+    plt.legend()
+    plt.gca().xaxis.set_major_formatter(formatter1)
+    plt.gca().yaxis.set_major_formatter(formatter1)
+    
+    plt.figure()
+    plt.plot(t1,amp1)
+    plt.xlabel('Time, s')
+    plt.ylabel('Amplitude') 
+    plt.gca().xaxis.set_major_formatter(formatter1)
+    plt.gca().yaxis.set_major_formatter(formatter1)
+    
+    corr=np.corrcoef(phi1,phi2)
+    return
+
+
+    
 
     
     
