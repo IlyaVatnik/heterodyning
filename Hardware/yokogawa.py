@@ -10,8 +10,8 @@ import numpy as np
 import time
 from sys import stdout
 
-__version__='3.3'
-__date__='2025.09.29'
+__version__='3.4'
+__date__='2026.05.07'
 
 class Yokogawa:
     
@@ -133,6 +133,43 @@ class Yokogawa:
         '''
         trigger_state=self.query_string(':TRIGger:INPUT?')
         return trigger_state
+    
+    def set_output_trigger(self,trigger):
+        '''
+        OFF:  OFF
+        SSTatus:  Sweep status
+        '''
+        res=self.resource.write_raw(':TRIGger:OUTPut {}'.format(trigger)) 
+        self.query_string('*OPC?')
+        
+    def get_output_trigger_type(self):
+        '''
+        OFF:  OFF
+        SSTatus:  Sweep status
+        Response 0 = OFF, 1 = SSTatus
+        '''
+        trigger_state=self.query_string(':TRIGger:OUTPut?')
+        if int(trigger_state)==1:
+            trigger_state='SSTatus'
+        elif int(trigger_state)==0:
+            trigger_state='OFF'
+        return trigger_state
+    
+    def set_sweep_speed(self,speed='1x'):
+        '''
+        1x
+        2x
+        '''
+        res=self.resource.write_raw(':SENSe:SWEep:SPEed {}'.format(speed)) 
+        self.query_string('*OPC?')
+        
+    def get_sweep_speed(self,speed='1x'):
+        speed=self.query_string(':SENSe:SWEep:SPEed?')
+        if int(speed)==1:
+            return '2x'
+        elif int(speed)==0:
+            return '1x'
+        
         
         
     def set_sensitivity(self,sens:str):

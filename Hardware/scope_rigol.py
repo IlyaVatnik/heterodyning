@@ -56,7 +56,8 @@ class Scope:
             channels_impedances={1:'FIFTy'},
             acq_time=1e-9,
             trace_points = 0, # if 0 - minimum,
-            trigger='AUTO'
+            trigger='AUTO',
+            channels_bandwidths={1:'OFF'}
             ):
         """
         Needs to be  later
@@ -77,6 +78,9 @@ class Scope:
             
         for key in channels_impedances.keys():
             self.set_channel_impedance(key,channels_impedances[key])
+                    
+        for key in channels_bandwidths.keys():
+            self.set_channel_bandwidth(key,channels_bandwidths[key])
         
     
         self.set_timescale(acq_time/10)
@@ -335,9 +339,18 @@ class Scope:
         #FIFTy for 50 Ohm
         #OMEG for 1 MOhm
         self.resource.write_raw(bytes(':CHANnel{}:IMPedance {}'.format(channel, impedance), encoding = 'utf8'))
-        
+    
+    def set_channel_bandwidth(self, channel = 1, bandwidth = 'OFF'):
+        #20M for 20 MOhm
+        #OFF for maximum
+        self.resource.write_raw(bytes(':CHANnel{}:BWLimit {}'.format(channel, bandwidth), encoding = 'utf8'))
+    
     def get_channel_impedance(self, channel = 1):
         return self.query_string(':CHANnel{}:IMPedance?'.format(channel))
+    
+    
+    def get_channel_bandwidth(self, channel = 1):
+        return self.query_string(':CHANnel{}:BWLimit?'.format(channel))
     
     """
     def set_trigger_type(self, trigger = 'AUTO'):

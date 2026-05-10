@@ -1,5 +1,5 @@
-from heterodyning.processing.process_spectra_yokogawa import process_spectra_from_folder
+from heterodyning.processing.plot_spectra_OSA import plot_spectra_OSA
 
 
 folder='data'
-process_spectra_from_folder(folder)
+plot_spectra_OSA(folder)

@@ -7,6 +7,9 @@ Created on Wed Mar 17 19:48:14 2021
 
 # <host>/cgi/sendrs232Direct.cgi
 
+__version__='2.0'
+__date__='2026.02.20'
+
 import requests
 
 
@@ -18,7 +21,7 @@ class Keopsys:
     def command(self, command):
         return requests.post(self.command_url, command).text
     
-    def APCon(self):
+    def on(self):
         if self.mode=='power':
             result=self.command('ASS=2')
         elif self.mode=='current':
@@ -26,7 +29,7 @@ class Keopsys:
         print('Pump is on')
         return result
     
-    def APCoff(self):
+    def off(self):
         result= self.command('ASS=0')
         print('Pump is off')
         return result
