@@ -37,8 +37,10 @@ class Keopsys:
     def set_power(self, pwr):
         if pwr<270:
             print('Error. Power {} too small to be set with this Keopsys laser'.format(pwr/10))
-        result= self.command('SOP={}'.format(pwr)) #dBm * 10
-        print('Pump power is set to {}'.format(pwr))
+        # for i in range(10):
+            # self.command('SOP={}'.format(pwr)) #dBm * 10
+        result=self.command('SOP={}'.format(int(pwr))) #dBm * 10
+        # print('Pump power is set to {}'.format(pwr))
         return result
     
     def get_power(self):
@@ -47,13 +49,17 @@ class Keopsys:
         return set_power
 
     def set_current(self, c):
-        return self.command('IC2={}'.format(c)) #dBm * 10
+        return self.command('IC2={}'.format(int(c))) #dBm * 10
     
     def get_current(self):
-        return self.command('ID2?') #dBm * 10
+        string=self.command('ID2?')
+        set_current=int(string.split('=')[1])
+        return set_current
 
     def actual_pwr(self):
-        return self.command('OPW?') #dBm * 10
+        string=self.command('OPW?')
+        current_power=int(string.split('=')[1])
+        return current_power #dBm * 10
     
     def set_control_mode(self,mode:str):
         self.mode=mode

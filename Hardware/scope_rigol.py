@@ -221,6 +221,9 @@ class Scope:
         status = self.query_string(':TRIG:STAT?').decode('utf-8')
         return status.strip()
     
+    def force_trigger(self):
+        self.resource.write_raw(bytes('TFORce ', encoding = 'utf8'))
+    
     def wait_for_trigger_status(self, status='STOP',timeout=2):
         """
         Ожидает срабатывания триггера с таймаутом
@@ -238,7 +241,7 @@ class Scope:
             else:
                 time.sleep(0.01)
         return False
-
+    
 
     
     def get_wfm_mode(self):
@@ -435,9 +438,10 @@ class Scope:
                 #%%
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    ch = 2
+    ch = 1
     # scope = Scope('10.2.60.239')
-    scope = Scope('10.2.60.108')
+    scope = Scope('10.2.60.137')
+#%%
     print('try something')
     # '''
     # averaging needs to be turned on\off manually
