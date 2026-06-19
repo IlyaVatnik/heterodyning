@@ -21,26 +21,54 @@ from matplotlib.ticker import EngFormatter
 formatter1 = EngFormatter()
 import matplotlib
 
-current_dir = Path(__file__).resolve().parent
-STEP_SIGNAL_FILE = current_dir.parent / "Hardware" / "F:/Ilya/heterodyning/Hardware/step_signal_oscillogram.pkl"
+
+__date__='2026.06.19'
+__version__='1.1'
+
+current_dir = Path(__file__).resolve()
+STRFRWD_STEP_SIGNAL_FILE = current_dir.parent / 'measuring' / 'Interrogator measurement signal' / 'strfrwd_step_signal_oscillogram.pkl'
+BALANCE_SCHEME_STEP_SIGNAL_FILE = current_dir.parent / 'measuring' / 'Interrogator measurement signal' / 'balance_scheme_step_signal_oscillogram.pkl'
 
 
 
 class TraceAnalyzer2D:
-    def __init__(self, filepath, 
-                 sweep_period=0.5e-3,
-                 sweep_speed=8e4,
-                 initial_wavelength=1528,
-                 sleep_time=0.00011,
-                 step_signal_filepath=STEP_SIGNAL_FILE):
-        self.filepath = filepath
-        self.step_signal_filepath=step_signal_filepath
+    def __init__(self, 
+                 sweep_period=0.50000305e-3,
+                 sweep_speed=9.73e4,
+                 sweep_accel=6.4e6,
+                 sleep_time=0.0000961,
+                 start_wavelength=1528,
+                 stop_wavelength=1568,
+                 wavelength_step=0.003,
+                 balanced_measurement_scheme=True,
+                 calibration_factor=1/20):
+        '''
+        balanced_measurement_scheme=True -  используется балансный фотодетектор, запуск по второму каналу, который измеряет мощность с интеррогатора, которая имеет скачок, запускающий триггер
+        '''
+        
+        
         self.sweep_period = sweep_period
         self.sweep_speed = sweep_speed
-        self.initial_wavelength=initial_wavelength
-        self.sleep_time=sleep_time
+        self.sweep_accel = sweep_accel
         
-        self.real_power_mode=False
+        self.interrogator_start_wavelength=1528
+        self.start_wavelength=start_wavelength
+        self.stop_wavelength=stop_wavelength
+        self.sleep_time=sleep_time
+        self.wavelength_step=wavelength_step
+        self.wavelength_resolution=0.02
+        self.balanced_measurement_scheme=balanced_measurement_scheme
+        self.calibration_factor=calibration_factor
+        if not balanced_measurement_scheme:
+            self.step_signal_filepath=STRFRWD_STEP_SIGNAL_FILE    
+        else:
+            self.step_signal_filepath=BALANCE_SCHEME_STEP_SIGNAL_FILE
+        
+        if self.calibration_factor!=None:
+            self.real_power_mode=True
+        else:
+            self.real_power_mode=False
+        
         
         self.fig_spec=None
         self.ax_spec=None
@@ -49,57 +77,142 @@ class TraceAnalyzer2D:
         self.modes=None
         self.N_modes=0
         
-
-    def load_and_process(self): # Снизили до 15 кГц!
+        self.filepath=None
+        
+        
     
+        
+  
 
-        with open(self.filepath, 'rb') as f:
+    def load_and_process(self,filepath): # Снизили до 15 кГц!
+    
+        self.filepath=filepath
+        with open(filepath, 'rb') as f:
             raw_signal, xinc, xorigin = pickle.load(f)
+            
+        self.process(raw_signal, xinc,xorigin)
+    
+    def process(self,raw_signal, xinc,xorigin):
         with open(self.step_signal_filepath, 'rb') as f:
             t_tpl , y_tpl = pickle.load(f)
-            
+
+
         raw_times=xorigin+np.arange(len(raw_signal))*xinc
         ind=int((self.sweep_period*1.3)/xinc)
-
-        
+        # print('start detecting jump')
         detect_jump_results=detect_jump_by_template(raw_times[:ind], raw_signal[:ind], t_tpl, y_tpl)
+        # print('jump detected')
         start_time=detect_jump_results['jump_time']
+        # else:
+            # start_time=xorigin//self.sweep_period
         ind_global_start=int((start_time-xorigin)/xinc)
         
-        self.N_periods=int(np.floor(raw_times[-1]/self.sweep_period))
-        self.N_points_in_period=int(self.sweep_period / xinc)
+        self.N_periods=int(np.floor((raw_times[-1]-start_time)/self.sweep_period))
+        
         self.sampling_rate=1/xinc
         
-        highpass_cutoff_hz=50e3
-        nyq = 0.5 * self.sampling_rate
-        normal_cutoff = highpass_cutoff_hz / nyq
+        # highpass_cutoff_hz=50e3
+        # nyq = 0.5 * self.sampling_rate
+        # normal_cutoff = highpass_cutoff_hz / nyq
         
+        array=np.arange(int((self.sweep_period-self.sleep_time)/xinc))
+        init_wavelengths=array*self.sweep_speed*xinc+(array*xinc)**2*self.sweep_accel +self.interrogator_start_wavelength
         
+        # init_wavelengths_test=array*self.sweep_speed*xinc+self.start_wavelength
+        # plt.figure()
+        # plt.plot(array,init_wavelengths)
+        # plt.plot(array,init_wavelengths_test)
         
-        self.intensity_2d=np.zeros((self.N_points_in_period,self.N_periods))
+        self.N_points_in_period=len(init_wavelengths)
+        # self.stop_wavelength=np.max(init_wavelengths)
+        self.wavelengths=np.arange(self.start_wavelength,self.stop_wavelength,self.wavelength_step)
+        self.N_wavelengths=len(self.wavelengths)
+       
+        
+        self.times=np.arange(self.N_periods)*self.sweep_period
+        
+        self.intensity_2d=np.zeros((self.N_wavelengths,self.N_periods))
         
         for ii in range(self.N_periods):
+            # print(f'Step {ii} of {self.N_periods}')
             ind_period_start=ind_global_start+int((ii*self.sweep_period+self.sleep_time)/xinc)
             ind_period_stop=ind_period_start+self.N_points_in_period
             
             fragment=raw_signal[ind_period_start:ind_period_stop]
-            sos = butter(N=4, Wn=normal_cutoff, btype='highpass', output='sos')
-            filtered_fragment = sosfiltfilt(sos, fragment)
+            # sos = butter(N=4, Wn=normal_cutoff, btype='highpass', output='sos')
+            # filtered_fragment = sosfiltfilt(sos, fragment)
             
-            analytic_signal = hilbert(filtered_fragment)
+            analytic_signal = hilbert(fragment)
             raw_envelope = np.abs(analytic_signal)**2
-            self.intensity_2d[:,ii]=gaussian_filter1d(raw_envelope, sigma=5)
+            # self.intensity_2d[:,ii]=np.interp(self.wavelengths,init_wavelengths,gaussian_filter1d(raw_envelope, sigma=5))
+            envelope=moving_average(raw_envelope, int(self.wavelength_resolution/(self.sweep_speed*xinc)))
+            self.intensity_2d[:,ii]=np.interp(self.wavelengths,init_wavelengths,envelope)
             
-        self.times=np.arange(self.N_periods)*self.sweep_period
-        self.wavelengths=np.arange(self.N_points_in_period)*xinc*self.sweep_speed+self.initial_wavelength
+            
         
+        
+        if self.calibration_factor!=None:
+            self.intensity_2d*=self.calibration_factor/0.04*self.wavelength_resolution
         return self.times,self.wavelengths,self.intensity_2d
         
- 
+
+    def plot_signal_vs_time(self, mode='raw', t_start=None, t_end=None,find_start=False):
+        """
+        1. Отрисовка непрерывного 1D сигнала от абсолютного времени эксперимента.
+        :param mode: 'envelope' (огибающая биений) или 'raw' (сырой сигнал с осциллографа)
+        :param t_start: Начало окна отрисовки в секундах (опционально)
+        :param t_end: Конец окна отрисовки в секундах (опционально)
+        """
+        if self.filepath!=None:
+            plt.figure(figsize=(12, 4))
+            with open(self.filepath, 'rb') as f:
+                raw_signal, xinc, xorigin = pickle.load(f)
+            
+            total_samples = len(raw_signal)
+            continuous_time=xorigin+np.arange(len(raw_signal))*xinc
+            
+            if mode == 'envelope':
+                signal = self.intensity_2d.flatten()
+                ylabel = 'Интенсивность огибающей (у.е.)'
+            elif mode == 'raw':
+                signal = raw_signal
+                ylabel = 'Сырой сигнал (В)'
+            else:
+                raise ValueError("Параметр mode должен быть 'envelope' или 'raw'")
+
+        # Обрезка по времени, если заданы t_start и t_end
+        # mask = np.ones(total_samples, dtype=bool)
+        # if t_start is not None:
+        #     mask &= (continuous_time >= t_start)
+        # if t_end is not None:
+        #     mask &= (continuous_time <= t_end)
+            
+        # plt.plot(continuous_time[mask], signal[mask], color='blue' if mode=='envelope' else 'gray', linewidth=0.8)
+            plt.plot(continuous_time, signal, color='blue' if mode=='envelope' else 'gray', linewidth=0.8)
+            if find_start:
+                ind=int((self.sweep_period*1.3)/xinc)
+                with open(self.step_signal_filepath, 'rb') as f:
+                    t_tpl , y_tpl = pickle.load(f)
+                detect_jump_results=detect_jump_by_template(continuous_time[:ind], raw_signal[:ind], t_tpl, y_tpl)
+                start_time=detect_jump_results['jump_time']
+            plt.axvline(start_time,linestyle='--',color='red')
+            
+            plt.xlabel('Абсолютное время (с)')
+            plt.ylabel(ylabel)
+            plt.title(f'Полный временной трейс ({mode})')
+            plt.grid(True, alpha=0.3)
+            plt.tight_layout()
+            plt.show()
+            print(len(raw_signal))
+        
+        
+        
     def plot_spectrogram(self,figsize=(8,6),font_size=11,title='',
                          vmin=None,vmax=None,cmap='jet',lang='en',
                          formatter='sci',scale='lin',
-                         show_colorbar=True):
+                         show_colorbar=True,
+                         start_wavelength=None,
+                         stop_wavelength=None):
         '''
         
 
@@ -237,6 +350,14 @@ class TraceAnalyzer2D:
         
         plt.title(title)
         plt.tight_layout()
+        if stop_wavelength!=None:
+            plt.ylim(top=stop_wavelength)
+        else:
+            plt.ylim(top=self.stop_wavelength)
+        if start_wavelength!=None:
+            plt.ylim(bottom=start_wavelength)
+        else:
+            plt.ylim(bottom=self.start_wavelength)
         
         return fig,ax
                 
@@ -378,7 +499,46 @@ class TraceAnalyzer2D:
                     print('Mode {}, Wavelength={:.3f} nm, life time={:.2f} ms, max power={:.3e} arb.u.'.format(i,self.modes[i].wavelength,self.modes[i].life_time*1e3,self.modes[i].max_power))
         else:
             print('No mode found on spectrogram')
+            
+    def create_params(self):
+        self.params={}
+        self.params['balanced_measurement_scheme']=self.balanced_measurement_scheme
+        self.params['calibration_factor']=self.calibration_factor
+        
+    def save_to_file(self,file,as_object=False):
+        self.create_params()
+        with open(file, 'wb') as f:
+            if as_object:
+                pickle.dump(self,f)
+            else:
+                pickle.dump([self.times,self.wavelengths,self.intensity_2d,self.params],f)
+                
+    def load_from_file(self,file,as_object=False):
+        with open(file, 'rb') as f:
+            obj=pickle.load(f)
 
+        self.times,self.wavelengths, self.intensity_2d,self.params=obj
+            
+    def get_dynamics_at_wavelength(self,wavelength):
+        wave_index=np.argmin(abs((self.wavelengths-wavelength)))
+        return self.times,self.intensity_2d[wave_index,:]
+        
+ 
+    def plot_dynamics_at_wavelengths(self,wavelength,NewFigure=True):
+        time,signal=self.get_dynamics_at_wavelength(wavelength)
+        if NewFigure:
+            fig=plt.figure()
+        plt.plot(time,signal)
+        plt.gca().xaxis.set_major_formatter(formatter1)
+        plt.gca().yaxis.set_major_formatter(formatter1)
+        plt.xlabel('Time, s')      
+        plt.ylabel('Intensity, W')
+        plt.title('Mode at {:.2f} nm'.format(wavelength))
+
+        plt.tight_layout()
+        # plt.show()
+        return fig, plt.gca()
+    
     
 
 class Mode():
@@ -397,23 +557,6 @@ class Mode():
 
 
 def _prepare_template(t_tpl, y_tpl):
-    t_tpl = np.asarray(t_tpl, dtype=float)
-    y_tpl = np.asarray(y_tpl, dtype=float)
-
-    if t_tpl.ndim != 1 or y_tpl.ndim != 1:
-        raise ValueError("t_tpl и y_tpl должны быть одномерными массивами")
-    if len(t_tpl) != len(y_tpl):
-        raise ValueError("t_tpl и y_tpl должны быть одной длины")
-    if len(t_tpl) < 2:
-        raise ValueError("шаблон слишком короткий")
-
-    order = np.argsort(t_tpl)
-    t_tpl = t_tpl[order]
-    y_tpl = y_tpl[order]
-
-    if not np.all(np.diff(t_tpl) > 0):
-        raise ValueError("времена шаблона должны строго возрастать")
-
     # Нормализация шаблона для корреляции
     y0 = y_tpl - np.mean(y_tpl)
     norm = np.linalg.norm(y0)
@@ -423,25 +566,7 @@ def _prepare_template(t_tpl, y_tpl):
     return t_tpl, y_tpl, y0, norm
 
 
-def _prepare_signal(t_sig, y_sig):
-    t_sig = np.asarray(t_sig, dtype=float)
-    y_sig = np.asarray(y_sig, dtype=float)
 
-    if t_sig.ndim != 1 or y_sig.ndim != 1:
-        raise ValueError("t_sig и y_sig должны быть одномерными массивами")
-    if len(t_sig) != len(y_sig):
-        raise ValueError("t_sig и y_sig должны быть одной длины")
-    if len(t_sig) < 2:
-        raise ValueError("сигнал слишком короткий")
-
-    order = np.argsort(t_sig)
-    t_sig = t_sig[order]
-    y_sig = y_sig[order]
-
-    if not np.all(np.diff(t_sig) > 0):
-        raise ValueError("времена сигнала должны строго возрастать")
-
-    return t_sig, y_sig
 
 
 def _normalized_corr(a, b):
@@ -501,7 +626,6 @@ def detect_jump_by_template(
             "matched_signal": интерполированный кусок сигнала в точках jump_time + t_tpl
         }
     """
-    t_sig, y_sig = _prepare_signal(t_sig, y_sig)
     t_tpl, y_tpl, y_tpl0, tpl_norm = _prepare_template(t_tpl, y_tpl)
 
     tpl_t_min = t_tpl[0]
@@ -563,3 +687,17 @@ def detect_jump_by_template(
         result["corr_values"] = corr_values
 
     return result
+
+def moving_average(signal, window):
+    signal = np.asarray(signal, dtype=float)
+    
+    pad_left = window // 2
+    pad_right = window - 1 - pad_left
+    
+    # отражение на краях (лучше, чем нули)
+    padded = np.pad(signal, (pad_left, pad_right), mode='edge')
+    
+    cumsum = np.cumsum(padded)
+    cumsum[window:] -= cumsum[:-window]
+    
+    return cumsum[window - 1:] / window

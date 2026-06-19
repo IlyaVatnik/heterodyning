@@ -5,7 +5,7 @@ import time
 import pickle
 
 
-__date__='2026.02.19'
+__date__='2026.05.07'
 
 folder='data\\'
 type_of_meas='single'
@@ -15,11 +15,11 @@ type_of_meas='single'
 # folder='data 100 max_hold sens Normal\\'
 # type_of_meas='hold'
 
-P_thresh=322
-minimum_output_power=-0.001 #  W
+P_thresh=200
+minimum_output_power=-0.010 #  W
 
-pump_min=290
-pump_max=295
+pump_min=278
+pump_max=302
 pump_step=1
 
 
@@ -32,6 +32,7 @@ osa.set_average_count(N_averaged)
 osa.set_sensitivity('Normal')
 osa.set_span(1546,1556)
 osa.set_sampling_point(0)
+osa.set_resolution(0.02)
 
 PM=ThorlabsPM100.PowerMeter('P0033636')
 
@@ -49,9 +50,9 @@ else:
 
 pump = keopsys.Keopsys('10.2.60.244')
 
-
+#%%
 pump.set_power(pump_min)
-pump.APCon()
+pump.on()
 time.sleep(2)
 output_powers=[]
 
@@ -78,9 +79,9 @@ try:
         with open(folder+str(p)+'.pkl', 'wb') as f:
             pickle.dump([x,y,time_measured,N_repeat],f)
         output_powers.append(PM.get_power())
-    pump.APCoff()
-except Exception as e:
-    pump.APCoff()
+    pump.off()
+except (Exception, KeyboardInterrupt) as e:
+    pump.off()
     print(e)
     osa.set_average_count(1)
     osa.abort()
