@@ -26,8 +26,8 @@ __date__='2026.06.19'
 __version__='1.1'
 
 current_dir = Path(__file__).resolve()
-STRFRWD_STEP_SIGNAL_FILE = current_dir.parent / 'measuring' / 'Interrogator measurement signal' / 'strfrwd_step_signal_oscillogram.pkl'
-BALANCE_SCHEME_STEP_SIGNAL_FILE = current_dir.parent / 'measuring' / 'Interrogator measurement signal' / 'balance_scheme_step_signal_oscillogram.pkl'
+STRFRWD_STEP_SIGNAL_FILE = current_dir.parent / 'Hardware' / 'calibrations'/ 'Interrogator measurement signal' / 'strfrwd_step_signal_oscillogram.pkl'
+BALANCE_SCHEME_STEP_SIGNAL_FILE = current_dir.parent / 'Hardware' / 'calibrations'/ 'Interrogator measurement signal' / 'balance_scheme_step_signal_oscillogram.pkl'
 
 
 
@@ -41,6 +41,7 @@ class TraceAnalyzer2D:
                  stop_wavelength=1568,
                  wavelength_step=0.003,
                  balanced_measurement_scheme=True,
+                 trigger_by='balanced_channel',
                  calibration_factor=1/20):
         '''
         balanced_measurement_scheme=True -  используется балансный фотодетектор, запуск по второму каналу, который измеряет мощность с интеррогатора, которая имеет скачок, запускающий триггер
@@ -59,10 +60,10 @@ class TraceAnalyzer2D:
         self.wavelength_resolution=0.02
         self.balanced_measurement_scheme=balanced_measurement_scheme
         self.calibration_factor=calibration_factor
-        if not balanced_measurement_scheme:
-            self.step_signal_filepath=STRFRWD_STEP_SIGNAL_FILE    
-        else:
-            self.step_signal_filepath=BALANCE_SCHEME_STEP_SIGNAL_FILE
+        if trigger_by=='balanced_channel':
+            self.step_signal_filepath=BALANCE_SCHEME_STEP_SIGNAL_FILE    
+        elif trigger_by=='ax_channel':
+            self.step_signal_filepath=STRFRWD_STEP_SIGNAL_FILE
         
         if self.calibration_factor!=None:
             self.real_power_mode=True
@@ -81,10 +82,17 @@ class TraceAnalyzer2D:
         
         
     
+        with open(self.step_signal_filepath, 'rb') as f:
+            t_tpl , y_tpl = pickle.load(f)
+            self.t_tpl = np.asarray(t_tpl, dtype=float)
+            y_tpl = np.asarray(y_tpl, dtype=float)
+
+            self.y_tpl0 = y_tpl - np.mean(y_tpl)
+            self.tpl_norm = np.linalg.norm(self.y_tpl0)
         
   
 
-    def load_and_process(self,filepath): # Снизили до 15 кГц!
+    def load_and_process(self,filepath): 
     
         self.filepath=filepath
         with open(filepath, 'rb') as f:
@@ -92,22 +100,26 @@ class TraceAnalyzer2D:
             
         self.process(raw_signal, xinc,xorigin)
     
-    def process(self,raw_signal, xinc,xorigin):
-        with open(self.step_signal_filepath, 'rb') as f:
-            t_tpl , y_tpl = pickle.load(f)
-
+    def process(self,raw_signal, xinc,xorigin,start_time=None):
+        
 
         raw_times=xorigin+np.arange(len(raw_signal))*xinc
-        ind=int((self.sweep_period*1.3)/xinc)
+        
         # print('start detecting jump')
-        detect_jump_results=detect_jump_by_template(raw_times[:ind], raw_signal[:ind], t_tpl, y_tpl)
+        
+        
+        if start_time==None:
+            detect_jump_results=detect_jump_by_template(raw_times, raw_signal, self.t_tpl, self.y_tpl0,self.tpl_norm,searching_time=self.sweep_period*1.3)
         # print('jump detected')
-        start_time=detect_jump_results['jump_time']
+        
+            self.start_time=detect_jump_results['jump_time']
+        else:
+            self.start_time=start_time
         # else:
             # start_time=xorigin//self.sweep_period
-        ind_global_start=int((start_time-xorigin)/xinc)
+        ind_global_start=int((self.start_time-xorigin)/xinc)
         
-        self.N_periods=int(np.floor((raw_times[-1]-start_time)/self.sweep_period))
+        self.N_periods=int(np.floor((raw_times[-1]-self.start_time)/self.sweep_period))
         
         self.sampling_rate=1/xinc
         
@@ -193,7 +205,7 @@ class TraceAnalyzer2D:
                 ind=int((self.sweep_period*1.3)/xinc)
                 with open(self.step_signal_filepath, 'rb') as f:
                     t_tpl , y_tpl = pickle.load(f)
-                detect_jump_results=detect_jump_by_template(continuous_time[:ind], raw_signal[:ind], t_tpl, y_tpl)
+                detect_jump_results=detect_jump_by_template(continuous_time[:ind], raw_signal[:ind], self.t_tpl, self.y_tpl0,self.tpl_norm,searching_time=self.sweep_period*1.3)
                 start_time=detect_jump_results['jump_time']
             plt.axvline(start_time,linestyle='--',color='red')
             
@@ -362,22 +374,27 @@ class TraceAnalyzer2D:
         return fig,ax
                 
     
-    def plot_instant_spectrum(self,time:float,scale='log',**plot_params):
+    def get_instant_spectrum(self,time:float):
         ind=np.argmin(abs(self.times-time))
+        return self.wavelengths, self.intensity_2d[:,ind]
+    
+    
+    def plot_instant_spectrum(self,time:float,scale='log',**plot_params):
+        waves,signal=self.get_instant_spectrum(time)
         fig=plt.figure()
         if self.real_power_mode:
             if scale=='lin':
-                plt.plot(self.wavelengths,self.intensity_2d[:,ind],**plot_params)
+                plt.plot(waves,signal,**plot_params)
                 plt.ylabel('Spectral power, W')
             elif scale=='log':
-                plt.plot(self.wavelengths,10*np.log10(self.intensity_2d[:,ind]/1e-3),**plot_params)
+                plt.plot(waves,10*np.log10(signal/1e-3),**plot_params)
                 plt.ylabel('Spectral power, dBm')
         else:
             if scale=='lin':
-                plt.plot(self.wavelengths,self.intensity_2d[:,ind],**plot_params)
+                plt.plot(waves,signal,**plot_params)
                 plt.ylabel('Spectral power, arb.u.')
             elif scale=='log':
-                plt.plot(self.wavelengths,10*np.log10(self.intensity_2d[:,ind]/1e-3),**plot_params)
+                plt.plot(waves,10*np.log10(signal/1e-3),**plot_params)
                 plt.ylabel('Spectral power, dB')
         # plt.gca().xaxis.set_major_formatter(formatter1)
         plt.gca().yaxis.set_major_formatter(formatter1)
@@ -385,6 +402,34 @@ class TraceAnalyzer2D:
         plt.xlabel('Wavelength, nm')
         return fig
         
+    def get_average_spectrum(self,start_time,stop_time):
+        ind_start=np.argmin(abs(self.times-start_time))
+        ind_stop=np.argmin(abs(self.times-stop_time))
+        return self.wavelengths, np.mean(self.intensity_2d[:,ind_start:ind_stop],axis=1)
+    
+    def plot_average_spectrum(self,start_time,stop_time, scale='log',**plot_params):
+        waves,signal=self.get_average_spectrum(start_time,stop_time)
+        fig=plt.figure()
+        if self.real_power_mode:
+            if scale=='lin':
+                plt.plot(waves,signal,**plot_params)
+                plt.ylabel('Spectral power, W')
+            elif scale=='log':
+                plt.plot(waves,10*np.log10(signal/1e-3),**plot_params)
+                plt.ylabel('Spectral power, dBm')
+        else:
+            if scale=='lin':
+                plt.plot(waves,signal,**plot_params)
+                plt.ylabel('Spectral power, arb.u.')
+            elif scale=='log':
+                plt.plot(waves,10*np.log10(signal/1e-3),**plot_params)
+                plt.ylabel('Spectral power, dB')
+        # plt.gca().xaxis.set_major_formatter(formatter1)
+        plt.gca().yaxis.set_major_formatter(formatter1)
+        
+        plt.xlabel('Wavelength, nm')
+        return fig
+    
        
     def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=1,height=None,min_wavelength_spacing=0.05,rel_height=0.2,plot_shrinked_spectrum=False):
         self.modes=[]
@@ -489,7 +534,7 @@ class TraceAnalyzer2D:
         return self.modes
     
     def print_all_modes(self):
-        if not self.N_modes:
+        if self.N_modes is None:
             self.find_modes()
         if self.N_modes>0:
             for i,_ in enumerate(self.modes):
@@ -593,68 +638,75 @@ def detect_jump_by_template(
     t_sig,
     y_sig,
     t_tpl,
-    y_tpl,
+    y_tpl0,
+    tpl_norm,
+    searching_time,
     search_times=None,
     threshold=None,
     return_curve=True,
 ):
     """
-    Ищет время скачка в сигнале по шаблону.
+Ищет время скачка в сигнале по шаблону.
 
-    Параметры
-    ---------
-    t_sig, y_sig : массивы сигнала
-    t_tpl, y_tpl : массивы шаблона
-        В шаблоне момент скачка должен соответствовать t=0.
-        t_tpl может содержать отрицательные и положительные времена.
-    search_times : массив candidate-времен tau, optional
-        Если None, используется t_sig в допустимом диапазоне.
-    threshold : float, optional
-        Если задан, то будет флаг found = score >= threshold.
-    return_curve : bool
-        Возвращать ли всю кривую корреляции.
+Параметры
+---------
+t_sig, y_sig : массивы сигнала
+t_tpl, y_tpl0, tpl_norm : массивы шаблона
+    В шаблоне момент скачка должен соответствовать t=0.
+    t_tpl может содержать отрицательные и положительные времена.
+search_times : массив candidate-времен tau, optional
+    Если None, используется t_sig в допустимом диапазоне.
+threshold : float, optional
+    Если задан, то будет флаг found = score >= threshold.
+return_curve : bool
+    Возвращать ли всю кривую корреляции.
 
-    Возвращает
-    ----------
-    result : dict
-        {
-            "jump_time": оценка времени скачка,
-            "score": максимум корреляции,
-            "found": True/False/None,
-            "corr_times": времена tau,
-            "corr_values": значения корреляции,
-            "matched_signal": интерполированный кусок сигнала в точках jump_time + t_tpl
-        }
-    """
-    t_tpl, y_tpl, y_tpl0, tpl_norm = _prepare_template(t_tpl, y_tpl)
+Возвращает
+----------
+result : dict
+    {
+        "jump_time": оценка времени скачка,
+        "score": максимум корреляции,
+        "found": True/False/None,
+        "corr_times": времена tau,
+        "corr_values": значения корреляции,
+        "matched_signal": интерполированный кусок сигнала в точках jump_time + t_tpl
+    }
+"""
+    xinc = t_sig[1] - t_sig[0]
+    ind = int(searching_time / xinc)
 
-    tpl_t_min = t_tpl[0]
-    tpl_t_max = t_tpl[-1]
+    y_sig = y_sig[:ind]
+    t0 = t_sig[0]
 
-    # Допустимые tau: чтобы точки tau + t_tpl лежали внутри диапазона сигнала
-    tau_min = t_sig[0] - tpl_t_min
-    tau_max = t_sig[-1] - tpl_t_max
+    # переводим t_tpl -> сдвиги в индексах
+    tpl_idx = np.round((t_tpl - t_tpl[0]) / xinc).astype(int)
+    tpl_len = tpl_idx[-1] + 1
 
-    if tau_min > tau_max:
-        raise ValueError("шаблон по времени не помещается в сигнал")
+    sig_len = len(y_sig)
+
+    # допустимые позиции (в индексах)
+    max_start = sig_len - tpl_len
+    if max_start <= 0:
+        raise ValueError("шаблон длиннее сигнала")
 
     if search_times is None:
-        mask = (t_sig >= tau_min) & (t_sig <= tau_max)
-        taus = t_sig[mask]
-        if len(taus) == 0:
-            # Если в t_sig нет точек в допустимом диапазоне, строим свою сетку
-            taus = np.linspace(tau_min, tau_max, 500)
+        taus_idx = np.arange(0, max_start)
+        taus = t0 + taus_idx * xinc
     else:
         taus = np.asarray(search_times, dtype=float)
-        taus = taus[(taus >= tau_min) & (taus <= tau_max)]
+        taus_idx = np.round((taus - t0) / xinc).astype(int)
+        mask = (taus_idx >= 0) & (taus_idx <= max_start)
+        taus_idx = taus_idx[mask]
+        taus = taus[mask]
+
         if len(taus) == 0:
             raise ValueError("в search_times нет допустимых значений")
 
-    corr_values = np.empty(len(taus), dtype=float)
+    corr_values = np.empty(len(taus_idx), dtype=float)
 
-    for i, tau in enumerate(taus):
-        sample_times = tau + t_tpl
-        y_win = np.interp(sample_times, t_sig, y_sig)
+    for i, start in enumerate(taus_idx):
+        y_win = y_sig[start + tpl_idx]
 
         y_win0 = y_win - np.mean(y_win)
         win_norm = np.linalg.norm(y_win0)
@@ -665,10 +717,11 @@ def detect_jump_by_template(
             corr_values[i] = np.dot(y_win0, y_tpl0) / (win_norm * tpl_norm)
 
     best_idx = int(np.argmax(corr_values))
-    jump_time = float(taus[best_idx])
+    jump_time = float(taus[best_idx])-t_tpl[0]
     score = float(corr_values[best_idx])
 
-    matched_signal = np.interp(jump_time + t_tpl, t_sig, y_sig)
+    best_start = taus_idx[best_idx]
+    matched_signal = y_sig[best_start + tpl_idx]
 
     if threshold is None:
         found = None
