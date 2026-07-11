@@ -324,8 +324,8 @@ class Scope:
         return  float(self.query_string(':TIMebase:MAIN:SCALe?'))
     
     def set_delay(self,delay_time):
-        self.resource.write_raw(bytes(':TIMebase:DELay:ENABLe TRUE', encoding = 'utf8'))
-        self.resource.write_raw(bytes(':TIMebase:DELay:ENABLe TRUE', encoding = 'utf8'))
+        # self.resource.write_raw(bytes(':TIMebase:DELay:ENABLe TRUE', encoding = 'utf8'))
+        self.resource.write_raw(bytes(f':TIMebase:MAIN:OFFSet {delay_time}', encoding = 'utf8'))
     
     def get_sampling_rate(self):
         return  int(float(self.query_string(':ACQuire:SRATe?')))

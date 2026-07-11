@@ -39,7 +39,7 @@ class TraceAnalyzer2D:
                  sleep_time=0.0000961,
                  start_wavelength=1528,
                  stop_wavelength=1568,
-                 wavelength_step=0.003,
+                 wavelength_step=0.001,
                  balanced_measurement_scheme=True,
                  trigger_by='balanced_channel',
                  calibration_factor=1/20):
@@ -99,74 +99,166 @@ class TraceAnalyzer2D:
             raw_signal, xinc, xorigin = pickle.load(f)
             
         self.process(raw_signal, xinc,xorigin)
+        
+        
+
     
     def process(self,raw_signal, xinc,xorigin,start_time=None):
         
 
-        raw_times=xorigin+np.arange(len(raw_signal))*xinc
         
+        if len(raw_signal)*xinc>self.sweep_period:
+
+            raw_times=xorigin+np.arange(len(raw_signal))*xinc
         # print('start detecting jump')
         
-        
-        if start_time==None:
-            detect_jump_results=detect_jump_by_template(raw_times, raw_signal, self.t_tpl, self.y_tpl0,self.tpl_norm,searching_time=self.sweep_period*1.3)
-        # print('jump detected')
-        
-            self.start_time=detect_jump_results['jump_time']
+            
+            if start_time==None:
+                detect_jump_results=detect_jump_by_template(raw_times, raw_signal, self.t_tpl, self.y_tpl0,self.tpl_norm,searching_time=self.sweep_period*1.3)
+            # print('jump detected')
+            
+                self.start_time=detect_jump_results['jump_time']
+            else:
+                self.start_time=start_time
+            # else:
+                # start_time=xorigin//self.sweep_period
+            ind_global_start=int((self.start_time-xorigin)/xinc)
+            
+            self.N_periods=int(np.floor((raw_times[-1]-self.start_time)/self.sweep_period))
+            
+            self.sampling_rate=1/xinc
+            
+            # highpass_cutoff_hz=50e3
+            # nyq = 0.5 * self.sampling_rate
+            # normal_cutoff = highpass_cutoff_hz / nyq
+            
+            array=np.arange(int((self.sweep_period-self.sleep_time)/xinc))
+            init_wavelengths=array*self.sweep_speed*xinc+(array*xinc)**2*self.sweep_accel +self.interrogator_start_wavelength
+            
+            # init_wavelengths_test=array*self.sweep_speed*xinc+self.start_wavelength
+            # plt.figure()
+            # plt.plot(array,init_wavelengths)
+            # plt.plot(array,init_wavelengths_test)
+            
+            self.N_points_in_period=len(init_wavelengths)
+            # self.stop_wavelength=np.max(init_wavelengths)
+            self.wavelengths=np.arange(self.start_wavelength,self.stop_wavelength,self.wavelength_step)
+            self.N_wavelengths=len(self.wavelengths)
+           
+            
+            self.times=np.arange(self.N_periods)*self.sweep_period
+            
+            self.intensity_2d=np.zeros((self.N_wavelengths,self.N_periods))
+            
+            for ii in range(self.N_periods):
+                # print(f'Step {ii} of {self.N_periods}')
+                ind_period_start=ind_global_start+int((ii*self.sweep_period+self.sleep_time)/xinc)
+                ind_period_stop=ind_period_start+self.N_points_in_period
+                
+                fragment=raw_signal[ind_period_start:ind_period_stop]
+                # sos = butter(N=4, Wn=normal_cutoff, btype='highpass', output='sos')
+                # filtered_fragment = sosfiltfilt(sos, fragment)
+                
+                analytic_signal = hilbert(fragment)
+                raw_envelope = np.abs(analytic_signal)**2
+                # self.intensity_2d[:,ii]=np.interp(self.wavelengths,init_wavelengths,gaussian_filter1d(raw_envelope, sigma=5))
+                envelope=moving_average(raw_envelope, int(self.wavelength_resolution/(self.sweep_speed*xinc)))
+  
+                self.intensity_2d[:,ii]=np.interp(self.wavelengths,init_wavelengths,envelope)
+                
         else:
-            self.start_time=start_time
-        # else:
-            # start_time=xorigin//self.sweep_period
-        ind_global_start=int((self.start_time-xorigin)/xinc)
-        
-        self.N_periods=int(np.floor((raw_times[-1]-self.start_time)/self.sweep_period))
-        
-        self.sampling_rate=1/xinc
-        
-        # highpass_cutoff_hz=50e3
-        # nyq = 0.5 * self.sampling_rate
-        # normal_cutoff = highpass_cutoff_hz / nyq
-        
-        array=np.arange(int((self.sweep_period-self.sleep_time)/xinc))
-        init_wavelengths=array*self.sweep_speed*xinc+(array*xinc)**2*self.sweep_accel +self.interrogator_start_wavelength
-        
-        # init_wavelengths_test=array*self.sweep_speed*xinc+self.start_wavelength
-        # plt.figure()
-        # plt.plot(array,init_wavelengths)
-        # plt.plot(array,init_wavelengths_test)
-        
-        self.N_points_in_period=len(init_wavelengths)
-        # self.stop_wavelength=np.max(init_wavelengths)
-        self.wavelengths=np.arange(self.start_wavelength,self.stop_wavelength,self.wavelength_step)
-        self.N_wavelengths=len(self.wavelengths)
-       
-        
-        self.times=np.arange(self.N_periods)*self.sweep_period
-        
-        self.intensity_2d=np.zeros((self.N_wavelengths,self.N_periods))
-        
-        for ii in range(self.N_periods):
-            # print(f'Step {ii} of {self.N_periods}')
-            ind_period_start=ind_global_start+int((ii*self.sweep_period+self.sleep_time)/xinc)
-            ind_period_stop=ind_period_start+self.N_points_in_period
+            # короткий трейс: меньше одного периода
+            if start_time is None and not hasattr(self, 'start_time'):
+                print('Error. Start time not specified and trace is shorter then sweep period')
+                return
+
+            if start_time is not None:
+                self.start_time = start_time
+
+            self.sampling_rate = 1/xinc
+
+            ind_global_start = int((self.start_time - xorigin) / xinc)
+
+            # старт внутри массива (обрезаем если <0)
+            ind_start = ind_global_start + int(self.sleep_time / xinc)
             
-            fragment=raw_signal[ind_period_start:ind_period_stop]
-            # sos = butter(N=4, Wn=normal_cutoff, btype='highpass', output='sos')
-            # filtered_fragment = sosfiltfilt(sos, fragment)
+            # если старт до начала сигнала — сдвигаем
+            shift_points = 0
+            if ind_start < 0:
+                shift_points = -ind_start
+                ind_start = 0
             
+            if ind_start >= len(raw_signal):
+                print('Error: start is outside the signal')
+                return
+            
+            max_available_points = len(raw_signal) - ind_start
+            
+            # сколько реально используем
+            N = max_available_points
+            
+            # локальное "время внутри свипа" С УЧЁТОМ СДВИГА
+            array = np.arange(N) + shift_points
+            times_local = array * xinc
+            
+            init_wavelengths = (
+                times_local * self.sweep_speed
+                + (times_local ** 2) * self.sweep_accel
+                + self.interrogator_start_wavelength
+            )
+
+            self.N_points_in_period = len(init_wavelengths)
+
+            # формируем сетку длин волн (только доступный кусок!)
+            wl_min = max(self.start_wavelength, np.min(init_wavelengths))
+            wl_max = min(self.stop_wavelength, np.max(init_wavelengths))
+
+            if wl_max <= wl_min:
+                print('Error: no wavelength overlap in short trace')
+                return
+
+            self.wavelengths = np.arange(wl_min, wl_max, self.wavelength_step)
+            self.N_wavelengths = len(self.wavelengths)
+
+            self.times = np.array([0.0])  # один "кадр"
+
+            self.intensity_2d = np.zeros((self.N_wavelengths, 1))
+
+            fragment = raw_signal[ind_start:ind_start + self.N_points_in_period]
+
             analytic_signal = hilbert(fragment)
-            raw_envelope = np.abs(analytic_signal)**2
-            # self.intensity_2d[:,ii]=np.interp(self.wavelengths,init_wavelengths,gaussian_filter1d(raw_envelope, sigma=5))
-            envelope=moving_average(raw_envelope, int(self.wavelength_resolution/(self.sweep_speed*xinc)))
-            self.intensity_2d[:,ii]=np.interp(self.wavelengths,init_wavelengths,envelope)
+            raw_envelope = np.abs(analytic_signal) ** 2
+
+            window = int(self.wavelength_resolution / (self.sweep_speed * xinc))
+            window = max(window, 1)
+
+            envelope = moving_average(raw_envelope, window)
+
+            # self.intensity_2d[:, 0] = np.interp(
+            #     self.wavelengths,
+            #     init_wavelengths,
+            #     envelope
+            # )
             
+            min_len = min(len(init_wavelengths), len(envelope))
+
+            init_wavelengths_cut = init_wavelengths[:min_len]
+            envelope_cut = envelope[:min_len]
             
-        
+            self.intensity_2d[:, 0] = np.interp(
+                self.wavelengths,
+                init_wavelengths_cut,
+                envelope_cut
+            )
+            
         
         if self.calibration_factor!=None:
             self.intensity_2d*=self.calibration_factor/0.04*self.wavelength_resolution
         return self.times,self.wavelengths,self.intensity_2d
         
+
+
+
 
     def plot_signal_vs_time(self, mode='raw', t_start=None, t_end=None,find_start=False):
         """
