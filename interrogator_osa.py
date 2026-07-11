@@ -1,4 +1,4 @@
-from heterodyning.spectrograms_with_scanning_interrogator import TraceAnalyzer2D,detect_jump_by_template
+from heterodyning.spectrograms_with_scanning_interrogator import TraceAnalyzer2D
 import numpy as np
 import time
 
@@ -19,6 +19,7 @@ class Interrogator_OSA():
         self.scope=scope
         self.channel_signal=channel_signal
         self.channel_trigger=channel_trigger
+        
         self.start_wavelength=start_wavelength
         self.stop_wavelength=stop_wavelength
         self.start_time=start_time
@@ -65,14 +66,14 @@ class Interrogator_OSA():
         channel_trigger_scale=0.05
         channel_trigger_offset=0
         
-        trigger_level=0.050
+        trigger_level=0.080
         
         self.scope.set_channel_scale(self.channel_signal,channel_signal_scale)
         self.scope.set_channel_offset(self.channel_signal,channel_signal_offset)
         if self.channel_trigger!=None:
             self.scope.set_channel_scale(self.channel_trigger,channel_trigger_scale)
             self.scope.set_channel_offset(self.channel_trigger,channel_trigger_offset)
-            self.scope.set_trigger_source(self.channel_trigger)
+            self.scope.set_trigger_source(f'CHAN{self.channel_trigger}')
             self.scope.set_trigger_high_level(trigger_level)
             
             

@@ -33,7 +33,7 @@ plt.plot(waves,spectrum)
 #%%
 centers=[]
 powers=[]
-for i in range(100):
+for i in range(1000):
     osa.acquire()
     waves,spectrum,_=osa.query_trace()
     print(waves[np.argmax(spectrum)],np.max(spectrum))
