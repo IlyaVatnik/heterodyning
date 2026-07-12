@@ -7,6 +7,7 @@ Created on Fri Jul 10 13:36:16 2026
 
 import numpy as np
 import matplotlib.pyplot as plt
+from AFR_interrogator.interrogator import Interrogator
 from heterodyning.interrogator_osa import Interrogator_OSA
 from heterodyning.Hardware import scope_rigol
 from heterodyning.spectrograms_with_scanning_interrogator import TraceAnalyzer2D
@@ -16,16 +17,18 @@ import time
 #%%
 timeout=50
 
-IP='10.2.15.238'
+SCOPE_IP='10.2.15.101'
+INT_IP='10.2.15.150'
+PC_IP='10.2.15.164'
 
-
-scope=scope_rigol.Scope(IP)
+scope=scope_rigol.Scope(SCOPE_IP)
 osa=Interrogator_OSA(scope,1,2,1532,1534,14.08e-6,
                      sampling_rate=1000e6,
                      scope_acqusition_time=100e-6)
 osa.configure_scope()
-
+interr=Interrogator(INT_IP, PC_IP)
 #%%
+interr.start_freq_stream()
 osa.acquire()
 waves,spectrum,_=osa.query_trace()
 plt.figure()
@@ -39,7 +42,10 @@ for i in range(1000):
     print(waves[np.argmax(spectrum)],np.max(spectrum))
     centers.append(waves[np.argmax(spectrum)])
     powers.append(np.max(spectrum))
-
+    
+    with open(f'spectrum {i}.pkl', 'wb') as f:
+        pickle.dump([waves,spectrum],f)
+#%%
 fig,axes=plt.subplots(2,1)
 axes[0].plot(centers)
 axes[0].set_ylabel('Wavelength, nm')
@@ -48,5 +54,3 @@ axes[1].set_ylabel('Power, dBm')
 plt.title(f'{np.std(centers)} nm, {np.std(powers)} dB')
 
 #%%
-with open('response_heterodyning.pkl', 'wb') as f:
-    pickle.dump([waves,spectrum],f)

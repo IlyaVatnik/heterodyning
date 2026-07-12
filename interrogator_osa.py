@@ -66,7 +66,7 @@ class Interrogator_OSA():
         channel_trigger_scale=0.05
         channel_trigger_offset=0
         
-        trigger_level=0.080
+        trigger_level=0.075
         
         self.scope.set_channel_scale(self.channel_signal,channel_signal_scale)
         self.scope.set_channel_offset(self.channel_signal,channel_signal_offset)
