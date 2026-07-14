@@ -253,7 +253,7 @@ class Spectrogram():
         
         if scale=='lin':
             if formatter=='sci':
-                im=ax.pcolorfast(self.times,self.freqs,self.spec,cmap=cmap,vmin=vmin,vmax=vmax)
+                im=ax.pcolorfast(self.times,self.freqs,self.spec[1:,1:],cmap=cmap,vmin=vmin,vmax=vmax)
                 ax.xaxis.set_major_formatter(formatter1)
                 ax.yaxis.set_major_formatter(formatter1)
                 if lang=='en':
@@ -352,6 +352,10 @@ class Spectrogram():
         
         return fig,ax
         
+   
+    def get_instant_spectrum(self,time:float):
+        ind=np.argmin(abs(self.times-time))
+        return self.freqs,self.spec[:,ind]
     
     def plot_instant_spectrum(self,time:float,scale='log',**plot_params):
         ind=np.argmin(abs(self.times-time))
@@ -406,6 +410,42 @@ class Spectrogram():
         
         
     def find_modes(self,indicate_modes_on_spectrogram=False,prominance_factor=1,height=None,min_freq_spacing=1e5,rel_height=0.2,plot_shrinked_spectrum=False):
+        
+        def find_segments_above_threshold(signal,peaks, threshold):
+            """
+            Возвращает индексы начала (left_ips) и конца (right_ips, включительно)
+            всех участков, где signal > threshold.
+            """
+            x = np.asarray(signal)
+            mask = x > threshold
+            d = np.diff(mask.astype(np.int8))
+        
+            starts = np.flatnonzero(d == 1) + 1
+            ends_excl = np.flatnonzero(d == -1) + 1
+        
+            if mask[0]:
+                starts = np.r_[0, starts]
+            if mask[-1]:
+                ends_excl = np.r_[ends_excl, len(x)]
+        
+            ends_incl = ends_excl - 1
+            return starts, ends_incl
+            
+        
+        def __remove_intesections(segments:list):
+            for i in np.arange(1,len(segments)):
+                if segments[i][0]<segments[i-1][1]:
+                    if segments[i][1]>segments[i-1][1]:
+                        segments[i-1][1]=segments[i][1]
+                    
+                    del segments[i]
+                    # segments=np.delete(segments,i)
+                    __remove_intesections(segments)
+                    break
+            return segments
+        
+
+        threshold_for_mode_width=np.mean(self.spec)
         self.modes=[]
         signal_shrinked=np.nanmax(self.spec,axis=1)
         dv=self.freqs[1]-self.freqs[0]
@@ -425,13 +465,15 @@ class Spectrogram():
             peaks,_=scipy.signal.find_peaks(signal, height=bn.nanstd(signal),prominence=np.nanstd(signal))
             if len(peaks)!=0:
                 try:
-                    widths,width_heights,left_ips, right_ips=scipy.signal.peak_widths(signal,peaks,rel_height=rel_height)
+                    # left_ips, right_ips=find_segments_above_threshold(signal,peaks,threshold=threshold_for_mode_width)
+                    _,_,left_ips, right_ips=scipy.signal.peak_widths(signal,peaks,rel_height=1)
                     # print(self.times[int(left_ips)])
                     
                     indexes_sorted=np.argsort(left_ips)
                     left_ips=left_ips[indexes_sorted]
                     right_ips=right_ips[indexes_sorted]
                     segments=[[left_ips[i],right_ips[i]] for i in range(len(left_ips))]
+                    segments=__remove_intesections(segments)    
                     '''
                     remove intervals that are the same 
                     '''
@@ -441,21 +483,8 @@ class Spectrogram():
                     #     plt.plot([s[0],s[1]],[y,y],linewidth=4,label=number)
                     #     y+=1
                     # plt.legend()
-                        
                     
-                    def __remove_intesections(segments:list):
-                        for i in np.arange(1,len(segments)):
-                            if segments[i][0]<segments[i-1][1]:
-                                if segments[i][1]>segments[i-1][1]:
-                                    segments[i-1][1]=segments[i][1]
-                                
-                                del segments[i]
-                                # segments=np.delete(segments,i)
-                                __remove_intesections(segments)
-                                break
-                        return segments
-                    
-                    segments=__remove_intesections(segments)    
+                  
                     
                     # plt.figure()
                     # y=0
@@ -490,6 +519,9 @@ class Spectrogram():
             
             self.modes[mode_number].life_time=np.sum(self.modes[mode_number].death_times-self.modes[mode_number].birth_times)
       
+        self.N_modes=len(self.modes)
+        self.modes.sort(key=lambda x:-x.max_power)
+      
         if self.fig_spec is not None and indicate_modes_on_spectrogram:
             if self.fig_format=='normal':
                 extraticks=[x.freq/1e6 for x in self.modes]
@@ -503,8 +535,7 @@ class Spectrogram():
             # plt.yticks(minor=True)
             # self.fig_spec.axes[0].axhline(self.freqs,color='yellow',linewidth=2)
             
-        self.N_modes=len(self.modes)
-        self.modes.sort(key=lambda x:-x.max_power)
+        
         return self.modes
     
     
@@ -517,7 +548,7 @@ class Spectrogram():
     def plot_all_modes(self):
         for i,_ in enumerate(self.modes):
             self.plot_mode_dynamics(i)
-            plt.title(r'$\delta \nu$={:.0f} MHz, life time={:.2f} ms'.format(self.modes[i].freq/1e6,self.modes[i].life_time*1e3))
+            plt.title(r'Mode {}, $\delta \nu$={:.0f} MHz, life time={:.2f} ms'.format(i,self.modes[i].freq/1e6,self.modes[i].life_time*1e3))
             for j,_ in enumerate(self.modes[i].birth_times):
                 plt.gca().axvspan(self.modes[i].birth_times[j], self.modes[i].death_times[j], alpha=0.1, color='green')
             # plt.axvline(self.modes[i].birth_time)

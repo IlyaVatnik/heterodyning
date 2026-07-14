@@ -6,6 +6,7 @@ import numpy as np
 from scipy.optimize import minimize
 from scipy.fft import rfft, rfftfreq,irfft
 from scipy.signal import hilbert
+import scipy.signal
 from matplotlib.ticker import EngFormatter
 formatter1 = EngFormatter()
 import matplotlib.pyplot as plt
@@ -168,7 +169,7 @@ def filter_phase(phase, xinc, low_cut_off):
     return new_phase
 
 
-def demodulate_dynamics(signal,xinc,freq,mode_bandwidth=10e6, trend_linear_phase=False):
+def demodulate_dynamics(signal,xinc,freq,mode_bandwidth=10e6, trend_linear_phase=False,wrap_phase=False):
     '''
     filter signal to preserve only quasi sin signal at some frequency and than demodulate its phase using Hilbert transform approach
     freq = frquency at which we want to derive phase, in Hz
@@ -183,6 +184,7 @@ def demodulate_dynamics(signal,xinc,freq,mode_bandwidth=10e6, trend_linear_phase
 
     # 2) Фаза и амплитуда
     phi = np.unwrap(np.angle(z),discont=np.pi/2, period=np.pi)
+    # phi = np.unwrap(np.angle(z))
     amp = np.abs(z)
 
     t = np.arange(len(f_signal)) *xinc
@@ -198,7 +200,10 @@ def demodulate_dynamics(signal,xinc,freq,mode_bandwidth=10e6, trend_linear_phase
     elif freq is not None:
         # Вычесть известную несущую: phi(t) = (общая фаза) - 2π f0 t
         phi = phi - 2 * np.pi * freq * t
-
+    
+    if wrap_phase:
+        phi = np.angle(np.exp(1j*phi))
+        
     return t, phi, amp
 
     
@@ -220,38 +225,52 @@ def find_coexistence_intervals(mode1, mode2):
 
     return intersections
 
-def get_correlation_two_mode_phases(signal,xinc,spec, f1,f2):
+def get_correlation_two_mode_phases(signal,xinc,spec, mode_index, find_intersections=True,wrap_phase=False,
+                                    trend_linear_phase=True,corr_window=5e-6,corr_len=100e-5):
+    mode_bandwidth=3e6
+    f1=spec.modes[mode_index].freq
+    f2=spec.modes[mode_index+1].freq
+    
+    # factors=np.arange(1)
+    # for factor in factors:
+    if find_intersections:
+        intersections=find_coexistence_intervals(spec.modes[mode_index-1], spec.modes[mode_index])
+        min_index=int(intersections[0][0]/xinc)
+        max_index=int(intersections[0][1]/xinc)
+        trace=signal[min_index:max_index]
+    else:
+        trace=signal
 
-    mode_index=1
-    f1=spec.modes[mode_index-1].freq
-    f2=spec.modes[mode_index].freq
-    intersections=find_coexistence_intervals(spec.modes[mode_index-1], spec.modes[mode_index])
-    min_index=int(intersections[0][0]/xinc)
-    max_index=int(intersections[0][1]/xinc)
-    trace=trace_init[min_index:max_index]
+    t1,phi1, amp1=demodulate_dynamics(trace, xinc, f1,mode_bandwidth=mode_bandwidth,trend_linear_phase=trend_linear_phase,wrap_phase=wrap_phase)
+    t2,phi2, amp2=demodulate_dynamics(trace, xinc, f2,mode_bandwidth=mode_bandwidth,trend_linear_phase=trend_linear_phase,wrap_phase=wrap_phase)
+    if find_intersections:
+        t1+=intersections[0][0]
+        t2+=intersections[0][0]
+
+    #     corr=np.corrcoef(phi1,phi2)
+    #     corrs.append(corr[0,1])
+    #     print(corr[0,1])
+
+    # plt.figure()
+    # plt.plot(factors,corrs)
+
+    # corr = scipy.signal.correlate(phi1, phi2)
+    # corr /= np.max(abs(corr))
+    # time_shifts = scipy.signal.correlation_lags(len(phi1), len(phi2))*xinc
     
-    t1,phi1, amp1=coh_det.demodulate_dynamics(trace, xinc, f1,mode_bandwidth=4e6,trend_linear_phase=True)
-    t1+=intersections[0][0]
-    t2,phi2, amp2=coh_det.demodulate_dynamics(trace, xinc, f2,mode_bandwidth=4e6,trend_linear_phase=True)
-    t2+=intersections[0][0]
-    plt.figure()
-    plt.plot(t1,phi1,label='1')
-    plt.plot(t2,phi2,label='2')
-    plt.xlabel('Time, s')
-    plt.ylabel('Phase') 
-    plt.legend()
-    plt.gca().xaxis.set_major_formatter(formatter1)
-    plt.gca().yaxis.set_major_formatter(formatter1)
+    # corr=scipy.stats.pearsonr(phi1,phi2)
+    N=len(phi1)
+    corr_window_steps=int(corr_window/xinc)
+    corr_len_steps=int(corr_len/xinc)
+    corr=np.zeros(corr_len_steps)
+    for k in range(corr_len_steps):
+        corr[k]=np.sum(phi1[k:corr_window_steps+k]*phi2[k:corr_window_steps+k])/np.sqrt(np.sum(phi1[k:corr_window_steps+k]**2)*np.sum(phi2[k:corr_window_steps+k]**2))
     
-    plt.figure()
-    plt.plot(t1,amp1)
-    plt.xlabel('Time, s')
-    plt.ylabel('Amplitude') 
-    plt.gca().xaxis.set_major_formatter(formatter1)
-    plt.gca().yaxis.set_major_formatter(formatter1)
     
-    corr=np.corrcoef(phi1,phi2)
-    return
+    time_shifts=xinc*np.arange(len(corr))
+    time_max=time_shifts[np.argmax(abs(corr))]
+    
+    return time_shifts,corr, time_max,t1,phi1,phi2
 
 
     

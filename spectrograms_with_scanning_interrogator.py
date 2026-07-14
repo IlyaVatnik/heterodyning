@@ -358,7 +358,14 @@ class TraceAnalyzer2D:
         
         if scale=='lin':
             if formatter=='sci':
-                im=ax.pcolorfast(self.times,self.wavelengths,self.intensity_2d,cmap=cmap,vmin=vmin,vmax=vmax)
+                # im=ax.pcolorfast(self.times,self.wavelengths,self.intensity_2d,cmap=cmap,vmin=vmin,vmax=vmax)
+                im=ax.imshow(self.intensity_2d,
+                          aspect='auto',
+                          extent=[self.times.min(), self.times.max(),
+                                  self.wavelengths.min(), self.wavelengths.max()],
+                          origin='lower',
+                          cmap=cmap, vmin=vmin, vmax=vmax)
+                
                 ax.xaxis.set_major_formatter(formatter1)
                 # ax.yaxis.set_major_formatter(formatter1)
                 if lang=='en':
@@ -368,7 +375,13 @@ class TraceAnalyzer2D:
                     plt.ylabel('Длина волны, нм')
                     plt.xlabel('Время, сек')
             elif formatter=='normal':
-                im=ax.pcolorfast(self.times*1e3,self.wavelengths,self.intensity_2d,cmap=cmap,vmin=vmin,vmax=vmax)
+                # im=ax.pcolorfast(self.times*1e3,self.wavelengths,self.intensity_2d,cmap=cmap,vmin=vmin,vmax=vmax)
+                im=ax.imshow(self.intensity_2d,
+                          aspect='auto',
+                          extent=[self.times.min()*1e3, self.times.max()*1e3,
+                                  self.wavelengths.min(), self.wavelengths.max()],
+                          origin='lower',
+                          cmap=cmap, vmin=vmin, vmax=vmax)
                 if lang=='en':
                     plt.ylabel('Wavelength, nm')
                     plt.xlabel('Time, ms')
@@ -376,7 +389,13 @@ class TraceAnalyzer2D:
                     plt.ylabel('Длина волны, нм')
                     plt.xlabel('Время, мс')
             elif formatter=='none':
-                im=ax.pcolorfast(self.times,self.wavelengths,self.intensity_2d,cmap=cmap,vmin=vmin,vmax=vmax)
+                # im=ax.pcolorfast(self.times,self.wavelengths,self.intensity_2d,cmap=cmap,vmin=vmin,vmax=vmax)
+                im=ax.imshow(self.intensity_2d,
+                          aspect='auto',
+                          extent=[self.times.min(), self.times.max(),
+                                  self.wavelengths.min(), self.wavelengths.max()],
+                          origin='lower',
+                          cmap=cmap, vmin=vmin, vmax=vmax)
                 ax.xaxis.set_major_formatter(formatter1)
                 ax.yaxis.set_major_formatter(formatter1)
                 
@@ -400,7 +419,13 @@ class TraceAnalyzer2D:
             
         elif scale=='log':
             if formatter=='sci':
-                im=ax.pcolorfast(self.times,self.wavelengths,10*np.log10(self.intensity_2d/1e-3),cmap=cmap,vmin=vmin,vmax=vmax)
+                # im=ax.pcolorfast(self.times,self.wavelengths,10*np.log10(self.intensity_2d/1e-3),cmap=cmap,vmin=vmin,vmax=vmax)
+                im=ax.imshow(10*np.log10(self.intensity_2d/1e-3),
+                            aspect='auto',
+                            extent=[self.times.min(), self.times.max(),
+                                    self.wavelengths.min(), self.wavelengths.max()],
+                            origin='lower',
+                            cmap=cmap, vmin=vmin, vmax=vmax)
                 ax.xaxis.set_major_formatter(formatter1)
                 # ax.yaxis.set_major_formatter(formatter1)
                 if lang=='en':
@@ -410,7 +435,13 @@ class TraceAnalyzer2D:
                     plt.ylabel('Длина волны, нм')
                     plt.xlabel('Время, сек')
             elif formatter=='normal':
-                im=ax.pcolorfast(self.times*1e3,self.wavelengths,10*np.log10(self.intensity_2d/1e-3),cmap=cmap,vmin=vmin,vmax=vmax)
+                # im=ax.pcolorfast(self.times*1e3,self.wavelengths,10*np.log10(self.intensity_2d/1e-3),cmap=cmap,vmin=vmin,vmax=vmax)
+                im=ax.imshow(10*np.log10(self.intensity_2d/1e-3),
+                            aspect='auto',
+                            extent=[self.times.min()*1e3, self.times.max()*1e3,
+                                    self.wavelengths.min(), self.wavelengths.max()],
+                            origin='lower',
+                            cmap=cmap, vmin=vmin, vmax=vmax)
                 if lang=='en':
                     plt.ylabel('Wavelength, nm')
                     plt.xlabel('Time, ms')
@@ -419,7 +450,13 @@ class TraceAnalyzer2D:
                     plt.xlabel('Время, мс')
                     
             elif formatter=='none':
-                im=ax.pcolorfast(self.times,self.wavelengths,10*np.log10(self.intensity_2d/1e-3),cmap=cmap,vmin=vmin,vmax=vmax)
+                # im=ax.pcolorfast(self.times,self.wavelengths,10*np.log10(self.intensity_2d/1e-3),cmap=cmap,vmin=vmin,vmax=vmax)
+                im=ax.imshow(10*np.log10(self.intensity_2d/1e-3),
+                            aspect='auto',
+                            extent=[self.times.min(), self.times.max(),
+                                    self.wavelengths.min(), self.wavelengths.max()],
+                            origin='lower',
+                            cmap=cmap, vmin=vmin, vmax=vmax)
                 ax.xaxis.set_major_formatter(formatter1)
                 ax.yaxis.set_major_formatter(formatter1)
                     
