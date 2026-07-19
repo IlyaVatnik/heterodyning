@@ -17,16 +17,21 @@ import time
 #%%
 timeout=50
 
-SCOPE_IP='10.2.15.101'
-INT_IP='10.2.15.150'
-PC_IP='10.2.15.164'
+# SCOPE_IP='10.2.15.101'
+SCOPE_IP = '10.2.60.131'           # IP Осциллографа Tektronix
+INTERROGATOR_IP = '10.2.60.38'
+PC_IP='10.2.60.235'
 
 scope=scope_rigol.Scope(SCOPE_IP)
-osa=Interrogator_OSA(scope,1,2,1532,1534,14.08e-6,
+osa=Interrogator_OSA(scope,1,2,
+                     channel_trigger_level=-0.18,
+                     start_wavelength=1550,
+                     stop_wavelength=1551.5,
+                     start_time=0,
                      sampling_rate=1000e6,
                      scope_acqusition_time=100e-6)
 osa.configure_scope()
-interr=Interrogator(INT_IP, PC_IP)
+interr=Interrogator(INTERROGATOR_IP, PC_IP)
 #%%
 interr.start_freq_stream()
 osa.acquire()

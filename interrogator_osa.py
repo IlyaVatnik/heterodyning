@@ -10,23 +10,36 @@ class Interrogator_OSA():
                  scope,
                  channel_signal,
                  channel_trigger=None,
+                 channel_trigger_level=-0.18,
                  start_wavelength=1528,
                  stop_wavelength=1568,
                  start_time=None,
                  sampling_rate=500e6,
-                 scope_acqusition_time=10e-3): 
+                 scope_acqusition_time=10e-3,
+                 channel_signal_scale=0.05,
+                 channel_trigger_scale=0.05,
+                 wavelength_resolution=0.02): 
         
         self.scope=scope
         self.channel_signal=channel_signal
         self.channel_trigger=channel_trigger
+         
+        self.channel_signal_scale=channel_signal_scale
+        
         
         self.start_wavelength=start_wavelength
         self.stop_wavelength=stop_wavelength
         self.start_time=start_time
+        
+        self.channel_trigger_level=channel_trigger_level
+        self.channel_trigger_scale=channel_trigger_scale
+        
         if self.channel_trigger!=None:
-            self.analyzer=TraceAnalyzer2D(trigger_by='ax_channel',start_wavelength=start_wavelength,stop_wavelength=stop_wavelength)
+            self.analyzer=TraceAnalyzer2D(trigger_by='ax_channel',start_wavelength=start_wavelength,stop_wavelength=stop_wavelength,
+                                          wavelength_resolution=wavelength_resolution)
         else:
-            self.analyzer=TraceAnalyzer2D(trigger_by='balanced_channel',start_wavelength=start_wavelength,stop_wavelength=stop_wavelength)
+            self.analyzer=TraceAnalyzer2D(trigger_by='balanced_channel',start_wavelength=start_wavelength,stop_wavelength=stop_wavelength,
+                                          wavelength_resolution=wavelength_resolution)
         
 
         '''
@@ -46,7 +59,8 @@ class Interrogator_OSA():
     def _wave_to_time(self,wave):
         try:
             return (self.start_time+self.analyzer.sleep_time+
-                      (np.sqrt(self.analyzer.sweep_speed**2+4*self.analyzer.sweep_accel*(wave-self.analyzer.interrogator_start_wavelength))-self.analyzer.sweep_speed ) /2/self.analyzer.sweep_accel)
+                      (np.sqrt(self.analyzer.sweep_speed**2+
+                               4*self.analyzer.sweep_accel*(wave-self.analyzer.interrogator_start_wavelength))-self.analyzer.sweep_speed ) /2/self.analyzer.sweep_accel)
         except TypeError:
             print('start_time is not specified')
     
@@ -60,13 +74,13 @@ class Interrogator_OSA():
                                                       trigger='SINGLE')
         
         
-        channel_signal_scale=0.2
+        channel_signal_scale=self.channel_signal_scale
         channel_signal_offset=0
         
-        channel_trigger_scale=0.05
+        channel_trigger_scale=self.channel_trigger_scale
         channel_trigger_offset=0
         
-        trigger_level=0.075
+        
         
         self.scope.set_channel_scale(self.channel_signal,channel_signal_scale)
         self.scope.set_channel_offset(self.channel_signal,channel_signal_offset)
@@ -74,13 +88,13 @@ class Interrogator_OSA():
             self.scope.set_channel_scale(self.channel_trigger,channel_trigger_scale)
             self.scope.set_channel_offset(self.channel_trigger,channel_trigger_offset)
             self.scope.set_trigger_source(f'CHAN{self.channel_trigger}')
-            self.scope.set_trigger_high_level(trigger_level)
+            self.scope.set_trigger_high_level(self.channel_trigger_level)
             
             
         central_wavelength=(self.stop_wavelength-self.start_wavelength)/2+self.start_wavelength
         delay=self._wave_to_time(central_wavelength)
         if self.start_time!=None:
-            delay+=self.start_time
+            delay-=self.start_time
             
         self.scope.set_delay(delay)
         print(f'Scope delay set to {delay}')

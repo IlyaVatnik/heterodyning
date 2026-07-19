@@ -40,6 +40,7 @@ class TraceAnalyzer2D:
                  start_wavelength=1528,
                  stop_wavelength=1568,
                  wavelength_step=0.001,
+                 wavelength_resolution=0.001,
                  balanced_measurement_scheme=True,
                  trigger_by='balanced_channel',
                  calibration_factor=1/20):
@@ -57,7 +58,8 @@ class TraceAnalyzer2D:
         self.stop_wavelength=stop_wavelength
         self.sleep_time=sleep_time
         self.wavelength_step=wavelength_step
-        self.wavelength_resolution=0.02
+        self.wavelength_resolution=wavelength_resolution
+         # set as you wish
         self.balanced_measurement_scheme=balanced_measurement_scheme
         self.calibration_factor=calibration_factor
         if trigger_by=='balanced_channel':
