@@ -10,6 +10,8 @@ class Interrogator_OSA():
                  scope,
                  channel_signal,
                  channel_trigger=None,
+                 polarization_channels='single', # 'both'
+                 channel_signal_2=None,
                  channel_trigger_level=-0.18,
                  start_wavelength=1528,
                  stop_wavelength=1568,
@@ -33,6 +35,8 @@ class Interrogator_OSA():
         
         self.channel_trigger_level=channel_trigger_level
         self.channel_trigger_scale=channel_trigger_scale
+        
+        self.polarization_channels=polarization_channels
         
         if self.channel_trigger!=None:
             self.analyzer=TraceAnalyzer2D(trigger_by='ax_channel',start_wavelength=start_wavelength,stop_wavelength=stop_wavelength,
@@ -82,8 +86,14 @@ class Interrogator_OSA():
         
         
         
+        
         self.scope.set_channel_scale(self.channel_signal,channel_signal_scale)
         self.scope.set_channel_offset(self.channel_signal,channel_signal_offset)
+        
+        if self.polarization_channels=='both':
+            self.scope.set_channel_scale(self.channel_signal_2,channel_signal_scale)
+            self.scope.set_channel_offset(self.channel_signal_2,channel_signal_offset)
+            
         if self.channel_trigger!=None:
             self.scope.set_channel_scale(self.channel_trigger,channel_trigger_scale)
             self.scope.set_channel_offset(self.channel_trigger,channel_trigger_offset)
@@ -111,6 +121,7 @@ class Interrogator_OSA():
                 self.signal_acquired=True
                 break
             
+        
             
         # if self.start_time==None:
             # if self.channel_trigger!=None:
@@ -129,18 +140,38 @@ class Interrogator_OSA():
 
         if self.signal_acquired:
             self.analyzer.process(self.trace_signal[0], self.trace_signal[1], self.trace_signal[2],self.start_time)
-            waves, spectrum = self.analyzer.get_instant_spectrum(time_to_derive_spectrum)
+            waves, spectrum_polarization_1 = self.analyzer.get_instant_spectrum(time_to_derive_spectrum)
+         
+            if self.polarization_channels=='both':
+                while time.time() - t0 < timeout:
+                    self.trace_signal=self.scope.get_data(self.channel_signal_2)
+                    if len(self.trace_signal[0])>1:
+                        self.signal_acquired=True
+                        break
+                self.analyzer.process(self.trace_signal[0], self.trace_signal[1], self.trace_signal[2],self.start_time)
+                _, spectrum_polarization_2 = self.analyzer.get_instant_spectrum(time_to_derive_spectrum)
+            else:
+                spectrum_polarization_2=np.ones(len(waves))*1e-20
+                
             self.start_time=self.analyzer.start_time+self.analyzer.sweep_period*int(time_to_derive_spectrum/0.005)
+            
+            
+            
         else:
             waves=np.array([self.start_wavelength,self.stop_wavelength])
-            spectrum=np.array([1e-20,1e-20])
+            spectrum_total=np.array([1e-20,1e-20])
+            spectrum_polarization_1=np.array([1e-20,1e-20])
+            spectrum_polarization_2=np.array([1e-20,1e-20])
             self.analyzer.start_time=0
                 
+        spectrum_total=spectrum_polarization_1+spectrum_polarization_2
         
         if scale=='log':
-            spectrum=10*np.log10(spectrum)
+            spectrum_polarization_1=10*np.log10(spectrum_polarization_1)
+            spectrum_polarization_2=10*np.log10(spectrum_polarization_1)
+            spectrum_total=10*np.log10(spectrum_total)
         
-        return waves, spectrum,self.start_time
+        return waves, spectrum_total,spectrum_polarization_1,spectrum_polarization_2,self.start_time
 
     def acquire(self,timeout=3):
         self.scope.set_trigger_mode('SINGLE')
