@@ -210,8 +210,34 @@ class Scope:
     def get_trigger_high_level(self):
         return float(self.query_string(':TRIGger:SLOPe:ALEVel?'))
     
+    def set_trigger_holdoff(self,holdoff):
+        self.resource.write_raw(bytes(':TRIGger:HOLDoff {}'.format(holdoff), encoding = 'utf8'))
+    
     def set_trigger_high_level(self,level):
         self.resource.write_raw(bytes(':TRIGger:SLOPe:ALEVel {}'.format(level), encoding = 'utf8'))
+        
+    def set_trigger_pulse_mode(self,source,when='GREater',LWIDth=450e-9):
+        self.resource.write_raw(bytes(':TRIGger:PULSe:SOURce {}'.format(source), encoding = 'utf8'))
+        self.resource.write_raw(bytes(':TRIGger:PULSe:WHEN {}'.format(when), encoding = 'utf8'))
+        self.resource.write_raw(bytes(':TRIGger:PULSe:LWIDth {}'.format(LWIDth), encoding = 'utf8'))
+        
+    def set_trigger_slope_mode(self,source,when='GREater',TLOWer=61e-6):
+        self.resource.write_raw(bytes(':TRIGger:SLOPe:SOURce {}'.format(source), encoding = 'utf8'))
+        self.resource.write_raw(bytes(':TRIGger:SLOPe:WHEN {}'.format(when), encoding = 'utf8'))
+        self.resource.write_raw(bytes(':TRIGger:SLOPe:TLOWer {}'.format(TLOWer), encoding = 'utf8'))
+  
+    
+    def set_trigger_timeout_mode(self,source,slope='NEGative',TIME=200e-6):
+        self.resource.write_raw(bytes(':TRIGger:SLOPe:SOURce {}'.format(source), encoding = 'utf8'))
+        self.resource.write_raw(bytes(':TRIGger:TIMeout:SLOPe {}'.format(slope), encoding = 'utf8'))
+        self.resource.write_raw(bytes(':TRIGger:TIMeout:TIME {}'.format(TIME), encoding = 'utf8'))
+    
+      
+    def set_trigger_edge_slope(self,slope):
+        '''
+        {POSitive|NEGative|RFALl}
+        '''
+        self.resource.write_raw(bytes('TRIGger:EDGE:SLOPe {}'.format(slope), encoding = 'utf8'))
         
     def check_trigger_status(self):
         """
