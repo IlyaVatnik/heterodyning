@@ -90,7 +90,7 @@ class Scope:
         self.trigger=trigger
         self.set_trigger_mode(trigger)
         
-        self.acquire()
+        # self.acquire()
         
         
         
@@ -198,13 +198,144 @@ class Scope:
         AUTO|NORMal|SINGle
         '''
         return str(self.query_string(':TRIGger:SWEep?').decode('utf-8'))
-        
     
-    def set_trigger_source(self, source:str):
+    @staticmethod
+    def _norm_sweep(s: str) -> str:
+        s = str(s).strip().upper()
+        mapping = {
+            "AUTO": "AUTO",
+            "NORM": "NORMal",
+            "NORMAL": "NORMal",
+            "NORMal".upper(): "NORMal",
+            "SING": "SINGLe",
+            "SINGLE": "SINGLe",
+            "SINGLESHOT": "SINGLe",
+            "SINGLe".upper(): "SINGLe",
+        }
+        if s not in mapping:
+            raise ValueError(f"Unsupported sweep='{s}'. Use AUTO|NORMAL|SINGLE")
+        return mapping[s]
+        
+    def configure_trigger(
+        self,
+        *,
+        mode: str,
+        channel_trigger: int = 1,
+        channel_trigger_scale: float | None = None,
+        channel_trigger_offset: float | None = None,
+        channel_trigger_level: float | None = None,
+        holdoff: float | None = None,
+        sweep: str | None = None,
+        # pulse-specific (и совместимые общие kwargs)
+        trigger_pulse_width: float | None = None,
+        when: str | None = None,
+        polarity: str | None = None,
+        slope: str | None = None,
+        timeout_time: float | None = None,
+    ):
+        """
+        Универсальная настройка триггера + (опционально) настройка канала триггера.
+    
+        Пример:
+            scope.configure_trigger(
+                channel_trigger=4,
+                channel_trigger_scale=2e-3,
+                channel_trigger_offset=+59.3e-3,
+                channel_trigger_level=-60.1e-3,
+                mode='pulse',
+                trigger_pulse_width=14e-9,
+                holdoff=10e-3,
+                when='GREater',
+                polarity='NEGative'
+            )
+        """
+    
+        # --- 0) (опционально) подготовка канала, откуда триггеримся ---
+        ch = int(channel_trigger)
+    
+        if channel_trigger_scale is not None:
+            self.set_channel_scale(ch, channel_trigger_scale)
+    
+        if channel_trigger_offset is not None:
+            self.set_channel_offset(ch, channel_trigger_offset)
+    
+        # уровень триггера (как у вас в старом коде)
+        if channel_trigger_level is not None:
+            self.resource.write_raw(
+                bytes(f":TRIGger:SLOPe:ALEVel {channel_trigger_level}", encoding="utf8")
+            )
+    
+        # --- 1) sweep/holdoff ---
+        if sweep is not None:
+            scpi_sweep = self._norm_sweep(sweep)
+            self.set_trigger_mode(scpi_sweep)  # AUTO|NORMal|SINGLe
+            self.trigger = scpi_sweep          # хранить так же, как ждёт acquire()
+            
+        if holdoff is not None:
+            self.set_trigger_holdoff(holdoff)
+    
+        # --- 2) выбрать активный тип триггера (ВАЖНО для MSO8000) ---
+        m = str(mode).strip().upper()
+        mode_map = {
+            "EDGE": "EDGE",
+            "PULSE": "PULSe",
+            "SLOPE": "SLOPe",
+            "TIMEOUT": "TIMeout",
+        }
+        if m not in mode_map:
+            raise ValueError(f"Unsupported mode='{mode}'. Use: {list(mode_map.keys())}")
+    
+        scpi_mode = mode_map[m]
+        self.resource.write_raw(bytes(f":TRIGger:MODE {scpi_mode}", encoding="utf8"))
+    
+        src = f"CHANnel{ch}"
+    
+        # --- 3) параметры режима ---
+        if scpi_mode == "EDGE":
+            if slope is None:
+                slope = "POSitive"
+            self.resource.write_raw(bytes(f":TRIGger:EDGE:SOURce {src}", encoding="utf8"))
+            self.resource.write_raw(bytes(f":TRIGger:EDGE:SLOPe {slope}", encoding="utf8"))
+    
+        elif scpi_mode == "PULSe":
+            if when is None:
+                when = "GREater"
+            if trigger_pulse_width is None:
+                raise ValueError("For mode='pulse' you must set trigger_pulse_width=<seconds>")
+            if polarity is None:
+                polarity = "POSitive"
+    
+            self.resource.write_raw(bytes(f":TRIGger:PULSe:SOURce {src}", encoding="utf8"))
+            self.resource.write_raw(bytes(f":TRIGger:PULSe:WHEN {when}", encoding="utf8"))
+            self.resource.write_raw(bytes(f":TRIGger:PULSe:LWIDth {trigger_pulse_width}", encoding="utf8"))
+            self.resource.write_raw(bytes(f":TRIGger:PULSe:POLarity {polarity}", encoding="utf8"))
+    
+        elif scpi_mode == "SLOPe":
+            raise NotImplementedError(
+                "mode='slope' not wired here yet (add tlower/when/polarity if needed)"
+            )
+    
+        elif scpi_mode == "TIMeout":
+            if timeout_time is None:
+                timeout_time = 200e-6
+            if slope is None:
+                slope = "NEGative"
+            self.resource.write_raw(bytes(f":TRIGger:TIMeout:SOURce {src}", encoding="utf8"))
+            self.resource.write_raw(bytes(f":TRIGger:TIMeout:SLOPe {slope}", encoding="utf8"))
+            self.resource.write_raw(bytes(f":TRIGger:TIMeout:TIME {timeout_time}", encoding="utf8"))
+
+    def set_trigger_edge_source(self, source:str):
         '''
         source D0|D1|D2|D3|D4|D5|D6|D7|D8|D9|D10|D11|D12|D13|D14|D15|CHANnel1|CHANnel2|CHANnel3|CHANnel4|ACLine|EXT
         '''
-        self.resource.write_raw(bytes(':TRIGger:EDGE:SOURce {}'.format(source), encoding = 'utf8'))
+        self.resource.write_raw(bytes(':TRIGger:EDGE:SOURce CHANnel{}'.format(source), encoding = 'utf8'))
+        return 
+
+    def set_trigger_window_source(self, source:str):
+        '''
+        source D0|D1|D2|D3|D4|D5|D6|D7|D8|D9|D10|D11|D12|D13|D14|D15|CHANnel1|CHANnel2|CHANnel3|CHANnel4|ACLine|EXT
+        '''
+        self.resource.write_raw(bytes(':TRIGger:WINDows:SOURce CHANnel{}'.format(source), encoding = 'utf8'))
         return 
 
     def get_trigger_high_level(self):
@@ -216,19 +347,24 @@ class Scope:
     def set_trigger_high_level(self,level):
         self.resource.write_raw(bytes(':TRIGger:SLOPe:ALEVel {}'.format(level), encoding = 'utf8'))
         
-    def set_trigger_pulse_mode(self,source,when='GREater',LWIDth=450e-9):
-        self.resource.write_raw(bytes(':TRIGger:PULSe:SOURce {}'.format(source), encoding = 'utf8'))
+    def set_trigger_pulse_mode(self,source,when='GREater',LWIDth=450e-9,polarity='POSitive'):
+        self.resource.write_raw(bytes(":TRIGger:MODE PULSe"))
+        self.resource.write_raw(bytes(':TRIGger:PULSe:SOURce CHANnel{}'.format(source), encoding = 'utf8'))
         self.resource.write_raw(bytes(':TRIGger:PULSe:WHEN {}'.format(when), encoding = 'utf8'))
         self.resource.write_raw(bytes(':TRIGger:PULSe:LWIDth {}'.format(LWIDth), encoding = 'utf8'))
+        self.resource.write_raw(bytes(':TRIGger:PULSe:POLarity {}'.format(polarity), encoding = 'utf8'))
         
-    def set_trigger_slope_mode(self,source,when='GREater',TLOWer=61e-6):
-        self.resource.write_raw(bytes(':TRIGger:SLOPe:SOURce {}'.format(source), encoding = 'utf8'))
+        
+    def set_trigger_slope_mode(self,source,when='GREater',TLOWer=61e-6,polarity='POSitive'):
+        self.resource.write_raw(bytes(":TRIGger:MODE SLOPe"))
+        self.resource.write_raw(bytes(':TRIGger:SLOPe:SOURce CHANnel{}'.format(source), encoding = 'utf8'))
         self.resource.write_raw(bytes(':TRIGger:SLOPe:WHEN {}'.format(when), encoding = 'utf8'))
         self.resource.write_raw(bytes(':TRIGger:SLOPe:TLOWer {}'.format(TLOWer), encoding = 'utf8'))
+        self.resource.write_raw(bytes(':TRIGger:SLOPe:POLarity {}'.format(polarity), encoding = 'utf8'))
   
     
     def set_trigger_timeout_mode(self,source,slope='NEGative',TIME=200e-6):
-        self.resource.write_raw(bytes(':TRIGger:SLOPe:SOURce {}'.format(source), encoding = 'utf8'))
+        self.resource.write_raw(bytes(':TRIGger:SLOPe:SOURce CHANnel{}'.format(source), encoding = 'utf8'))
         self.resource.write_raw(bytes(':TRIGger:TIMeout:SLOPe {}'.format(slope), encoding = 'utf8'))
         self.resource.write_raw(bytes(':TRIGger:TIMeout:TIME {}'.format(TIME), encoding = 'utf8'))
     
@@ -332,8 +468,11 @@ class Scope:
     def get_memory_depth(self):
         return int(float(self.query_string(':ACQuire:MDEPth?')))
     
-    def set_channel_on(self, channel = 1):
+    def set_channel_on(self, channel = 1,invert=False):
         self.resource.write_raw(bytes(':CHANnel{}:DISPlay 1'.format(channel), encoding = 'utf8'))
+        if invert:
+            self.resource.write_raw(bytes(':CHANnel{}:INVert ON', encoding = 'utf8'))
+            
         
         
     
@@ -396,36 +535,70 @@ class Scope:
         self.resource.write_raw(b":WAVeform:PREamble?")
         return self.resource.read_raw()
  
-    def acquire(self, timeout = np.inf, sleep_step = 0.01):
-        """
-        Acquire trace using current setup.
-        Default timeout is infinite, every ~5 sec a message is written to stdout
-        """
-        #self.err_corr()
-        # self.clear()
-        if self.trigger=='AUTO':
-            self.resource.write_raw(b':TRIGger:SWEep AUTO')
+    # def acquire(self, timeout = np.inf, sleep_step = 0.01):
+    #     """
+    #     Acquire trace using current setup.
+    #     Default timeout is infinite, every ~5 sec a message is written to stdout
+    #     """
+    #     #self.err_corr()
+    #     # self.clear()
+    #     if self.trigger=='AUTO':
+    #         self.resource.write_raw(b':TRIGger:SWEep AUTO')
+    #         self.resource.write_raw(b':RUN')
+    #     elif self.trigger=='SINGLe':
+    #         self.resource.write_raw(b':SINGLe')
+    #     i = 0
+    #     t0 = time.time()
+    #     # int(self.query_string('*OPC?'))
+    #     time.sleep(sleep_step)
+    #     while time.time() - t0 < timeout:
+    #         if int(self.query_string('*OPC?')):
+    #             stdout.write('Acquisition complete\n')
+    #             break
+    #         else:
+    #             i+=1
+    #             if i % 500 == 0:
+    #                 #if int(self.query_string(':ACQuire:AVERage?')):
+    #                 #    stdout.write('Averaging... \n')
+    #                 #else:
+    #                     stdout.write('Are you sure your trigger setup is correct?\n')
+    #             time.sleep(sleep_step)
+    #     else:
+    #         raise RuntimeError('Acquisition timeout')
+            
+            
+    def acquire(self, timeout=np.inf, sleep_step=0.01):
+        trig = str(self.trigger).strip()
+       
+        if trig == 'AUTO':
+            # sweep AUTO уже выставлен; просто RUN
             self.resource.write_raw(b':RUN')
-        elif self.trigger=='SINGLe':
-            self.resource.write_raw(b':SINGLe')
-        i = 0
-        t0 = time.time()
-        # int(self.query_string('*OPC?'))
-        time.sleep(sleep_step)
-        while time.time() - t0 < timeout:
-            if int(self.query_string('*OPC?')):
-                stdout.write('Acquisition complete\n')
-                break
-            else:
-                i+=1
-                if i % 500 == 0:
-                    #if int(self.query_string(':ACQuire:AVERage?')):
-                    #    stdout.write('Averaging... \n')
-                    #else:
-                        stdout.write('Are you sure your trigger setup is correct?\n')
+            return
+       
+        elif trig == 'NORMal':
+            # sweep NORMal уже выставлен; просто RUN
+            self.resource.write_raw(b':RUN')
+            t0 = time.time()
+            while time.time() - t0 < timeout:
+                if self.check_trigger_status() == 'STOP':
+                    stdout.write('Acquisition complete\n')
+                    return
                 time.sleep(sleep_step)
-        else:
             raise RuntimeError('Acquisition timeout')
+       
+        elif trig == 'SINGLe':
+            # ВАЖНО: только одна команда запуска single-shot
+            self.resource.write_raw(b':SINGLe')
+            t0 = time.time()
+            while time.time() - t0 < timeout:
+                if self.check_trigger_status() == 'STOP':
+                    stdout.write('Acquisition complete\n')
+                    return
+                time.sleep(sleep_step)
+            raise RuntimeError('Acquisition timeout')
+       
+        else:
+            raise RuntimeError(f"Unknown self.trigger='{self.trigger}'. Expected AUTO|SINGLe|NORMal")
             
     def run(self):
         self.resource.write_raw(b':RUN')
