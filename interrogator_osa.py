@@ -6,7 +6,7 @@ time_to_derive_spectrum=0.000
 
 
 
-__date__='2026.08.07'
+__date__='2026.08.27'
 
 class Interrogator_OSA():
     
@@ -29,7 +29,8 @@ class Interrogator_OSA():
                  
                  wavelength_resolution=0.02,
                  power_coeff_pol=1,
-                 power_control_powermeter=None): 
+                 power_control_powermeter=None,
+                 full_source_power=0): 
         
         self.scope=scope
         self.channel_signal=channel_signal
@@ -53,7 +54,7 @@ class Interrogator_OSA():
         
         if power_control_powermeter!=None:
             self.PM=power_control_powermeter
-            self.full_source_power=1.365 # mW
+            self.full_source_power=full_source_power # mW
         else:
             self.PM=None
         
@@ -201,7 +202,7 @@ class Interrogator_OSA():
             spectrum_polarization_2=10*np.log10(spectrum_polarization_2)
             spectrum_total=10*np.log10(spectrum_total)
         
-        return waves, spectrum_total,spectrum_polarization_1,spectrum_polarization_2,self.start_time
+        return waves, spectrum_total,spectrum_polarization_1,spectrum_polarization_2,self.start_time,current_power
 
     def acquire(self,timeout=3):
         

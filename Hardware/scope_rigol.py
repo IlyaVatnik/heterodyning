@@ -221,6 +221,7 @@ class Scope:
         *,
         mode: str,
         channel_trigger: int = 1,
+        channel_trigger_impedance=None,
         channel_trigger_scale: float | None = None,
         channel_trigger_offset: float | None = None,
         channel_trigger_level: float | None = None,
@@ -258,6 +259,11 @@ class Scope:
     
         if channel_trigger_offset is not None:
             self.set_channel_offset(ch, channel_trigger_offset)
+            
+                
+        if channel_trigger_impedance is not None:
+            self.set_channel_impedance(ch,channel_trigger_impedance)
+    
     
         # уровень триггера (как у вас в старом коде)
         if channel_trigger_level is not None:
